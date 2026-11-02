@@ -12,26 +12,48 @@ belong to the per-unit `component-parity` passes and are deliberately not here.
 
 ## How much app there is
 
+Rescanned at the head of `ruby` (`component-scan.sh` over `origin/main` and
+over `lib/`):
+
 | | upstream (`src/` + `data/`) | port (`lib/` on `ruby`) |
 |---|---:|---:|
-| widget rows | 2135 (110 distinct types) | 5 (5 distinct) |
-| controllers/gestures | 64 (12 distinct) | 0 |
-| CSS classes applied | 389 (132 distinct) | 0 |
-| signals connected | 638 (155 distinct) | 1 (`activate`) |
-| GAction names seen by the scan | 34 (20 distinct) | 0 |
-| component files | 147 Vala + 36 `.ui` | 1 (`lib/tuba/application.rb`) |
-| GSettings keys | 58 | 0 |
+| widget rows | 2135 (110 distinct types) | 33 (24 distinct) |
+| controllers/gestures | 64 (12 distinct) | 1 (1 distinct) |
+| CSS classes applied | 389 (132 distinct) | 17 (14 distinct) |
+| signals connected | 638 (155 distinct) | 14 (10 distinct) |
+| GAction names seen by the scan | 34 (20 distinct) | 1 |
+| component files | 146 Vala + 40 `.ui` | 10 `lib/*.rb` |
+| GSettings keys | 58 | 58 (`lib/settings.rb`) |
 | translated source files (`po/POTFILES`) | 158, 46 locales | 0 |
 
-The port is a placeholder: one `Gtk::Application`, one
-`Adwaita::ApplicationWindow`, a toolbar view, a header bar and a status page
-reading "The Ruby port has not been written yet." **Nothing in the inventory
-below exists yet.**
+The upstream column is unchanged from the first pass; the port column has
+moved, because the view shell landed in `ef45222`.
+
+### What exists on `ruby` now
+
+Ten files, none of them a user-facing page — they are the shell every page
+will sit in, plus the two mixins and the two non-widget services:
+
+| `lib/*.rb` | Upstream | What it covers |
+|---|---|---|
+| `application.rb` | `src/Application.vala` | app id, about dialog, 5 of the 29 actions (`about`, `shortcuts`, `quit`, `scroll-page-{down,up}`) and their accels. Window is a plain `Gtk::ApplicationWindow` holding a bare `ContentBaseView`, standing in for `MainWindow` |
+| `base_view.rb` | `src/Views/Base.vala` + `data/ui/views/base.ui` | header bar, clamped scrolled content, scroll-to-top button, loading/empty/error status pages |
+| `content_base_view.rb` | `src/Views/ContentBase.vala` | model-bound `Gtk::ListBox` content (upstream's non-`USE_LISTVIEW` branch) |
+| `tabbed_base_view.rb` | `src/Views/TabbedBase.vala` | view-switcher stack, switcher bar on narrow |
+| `shortcuts_window.rb` | `data/gtk/shortcuts-dialog.ui` | the three shortcut sections, verbatim |
+| `profile_menu.rb` | `data/ui/menus.ui` (`profile-menu`) | the profile header menu model |
+| `style.rb` | `data/style.css`, `data/eggs/{6,7}.css` | the stylesheet, inline instead of via GResource |
+| `settings.rb` | `data/dev.geopjr.Tuba.gschema.xml` + `src/Services/Settings.vala` | all 58 keys, global and per-account |
+| `widgetizable.rb` | `src/Widgets/Widgetizable.vala` | the model-to-row mixin |
+| `list_box_row_wrapper.rb` | `src/Widgets/ListBoxRowWrapper.vala` | the row that can report being opened |
+
+Everything else in the inventory below is still unported. The `copy-menu` half
+of `data/ui/menus.ui` is not in `profile_menu.rb` and needs a home.
 
 ## Naming rule used for the target paths
 
 The pilot (`gnome-contacts-rb`) keeps one flat `lib/<thing>.rb` per upstream
-source file. Tuba has 147 component files across four namespaces with
+source file. Tuba has 146 component files across four namespaces with
 colliding leaf names (`Views/Accounts`, `Widgets/Admin/AccountRow`,
 `Dialogs/Admin/Report` vs `Widgets/Admin/Report`), so the flat name carries the
 namespace:
@@ -51,20 +73,20 @@ component is the *set* of files, and the port has no `.ui` by design.
 
 | Upstream | → | Kind | Exists |
 |---|---|---|---|
-| `src/Application.vala` | `lib/application.rb` | application (actions, accels, about) | partial — placeholder only |
+| `src/Application.vala` | `lib/application.rb` | application (actions, accels, about) | partial — actions 5/29, about dialog, no `MainWindow` |
 | `src/Dialogs/MainWindow.vala` + `data/ui/dialogs/main.ui` | `lib/main_window.rb` | window (`Adw.ApplicationWindow` → `AdwOverlaySplitView` + `AdwNavigationView` + `AdwToastOverlay` + breakpoint) | no |
 | `src/Views/Sidebar.vala` + `data/ui/views/sidebar/view.ui` | `lib/sidebar_view.rb` | sidebar | no |
 | `data/ui/views/sidebar/item.ui` (`ItemRow`) | `lib/sidebar_view.rb` | row (nested class) | no |
 | `data/ui/views/sidebar/account.ui` (`AccountRow`) | `lib/sidebar_view.rb` | row (nested class) | no |
 | `src/Views/Main.vala` | `lib/main_view.rb` | tabbed root view (Home / Notifications / Conversations) | no |
-| `src/Views/Base.vala` + `data/ui/views/base.ui` | `lib/base_view.rb` | base view (header, empty state, error state, `StatusMessage`) | no |
-| `src/Views/ContentBase.vala` | `lib/content_base_view.rb` | base view | no |
-| `src/Views/TabbedBase.vala` | `lib/tabbed_base_view.rb` | base view | no |
+| `src/Views/Base.vala` + `data/ui/views/base.ui` | `lib/base_view.rb` | base view (header, empty state, error state, `StatusMessage`) | yes |
+| `src/Views/ContentBase.vala` | `lib/content_base_view.rb` | base view | yes |
+| `src/Views/TabbedBase.vala` | `lib/tabbed_base_view.rb` | base view | yes |
 | `src/Views/Timeline.vala` | `lib/timeline_view.rb` | base view (paging, streaming) | no |
-| `data/gtk/shortcuts-dialog.ui` | `lib/shortcuts_window.rb` | keyboard shortcuts dialog (no backing source file) | no |
-| `data/ui/menus.ui` (`profile-menu`, `copy-menu`) | `lib/profile_menu.rb` | menu model | no |
-| `data/style.css`, `data/eggs/6.css`, `data/eggs/7.css` | `lib/style.rb` | stylesheet (132 distinct classes) | no |
-| `data/dev.geopjr.Tuba.gschema.xml` + `src/Services/Settings.vala` | `lib/settings.rb` | GSettings (58 keys) | no |
+| `data/gtk/shortcuts-dialog.ui` | `lib/shortcuts_window.rb` | keyboard shortcuts dialog (no backing source file) | yes |
+| `data/ui/menus.ui` (`profile-menu`, `copy-menu`) | `lib/profile_menu.rb` | menu model | partial — `profile-menu` only |
+| `data/style.css`, `data/eggs/6.css`, `data/eggs/7.css` | `lib/style.rb` | stylesheet (132 distinct classes) | yes |
+| `data/dev.geopjr.Tuba.gschema.xml` + `src/Services/Settings.vala` | `lib/settings.rb` | GSettings (58 keys) | yes |
 | `src/Services/Accounts/Places.vala`, `.../Mastodon/Account.vala` | `lib/place.rb` | sidebar place model + the 13 built-in places | no |
 
 ### Sidebar places (built-in, from `Services/Accounts/Mastodon/Account.vala`)
@@ -105,7 +127,7 @@ gap or installed by GTK; check before porting.
 
 Command line: `--hidden`, `--unifiedpush-bg`.
 
-## Views (41 files)
+## Views (47 files; `Base`, `ContentBase`, `TabbedBase`, `Main`, `Sidebar` and `Timeline` are in **Window and shell** above)
 
 | Upstream | → | Kind | Exists |
 |---|---|---|---|
@@ -157,7 +179,7 @@ Command line: `--hidden`, `--unifiedpush-bg`.
 | `src/Views/Admin/Timelines/DomainBlock.vala` | `lib/admin_domain_block_timeline.rb` | timeline | no |
 | `src/Views/Admin/Timelines/EmailDomain.vala` | `lib/admin_email_domain_timeline.rb` | timeline | no |
 
-## Dialogs (35 files)
+## Dialogs (34 files; `MainWindow` is in **Window and shell** above)
 
 | Upstream | → | Kind | Exists |
 |---|---|---|---|
@@ -196,7 +218,7 @@ Command line: `--hidden`, `--unifiedpush-bg`.
 | `src/Dialogs/Admin/Report.vala` | `lib/admin_report_dialog.rb` | dialog | no |
 | `src/Dialogs/Admin/TakeAction.vala` | `lib/admin_take_action_dialog.rb` | dialog | no |
 
-## Widgets (71 files)
+## Widgets (59 files; `ListBoxRowWrapper` and `Widgetizable` are the two already ported)
 
 | Upstream | → | Kind | Exists |
 |---|---|---|---|
@@ -250,8 +272,8 @@ Command line: `--hidden`, `--unifiedpush-bg`.
 | `src/Widgets/FocusPicture.vala` | `lib/focus_picture.rb` | custom widget | no |
 | `src/Widgets/FadeBin.vala` | `lib/fade_bin.rb` | custom widget | no |
 | `src/Widgets/ScaleRevealer.vala` | `lib/scale_revealer.rb` | bin | no |
-| `src/Widgets/ListBoxRowWrapper.vala` | `lib/list_box_row_wrapper.rb` | row wrapper | no |
-| `src/Widgets/Widgetizable.vala` | `lib/widgetizable.rb` | interface/mixin | no |
+| `src/Widgets/ListBoxRowWrapper.vala` | `lib/list_box_row_wrapper.rb` | row wrapper | yes |
+| `src/Widgets/Widgetizable.vala` | `lib/widgetizable.rb` | interface/mixin | yes |
 | `src/Widgets/Admin/AccountRow.vala` | `lib/admin_account_row.rb` | row | no |
 | `src/Widgets/Admin/AssignedRow.vala` | `lib/admin_assigned_row.rb` | row | no |
 | `src/Widgets/Admin/DomainAllow.vala` | `lib/admin_domain_allow.rb` | row | no |
@@ -260,7 +282,7 @@ Command line: `--hidden`, `--unifiedpush-bg`.
 | `src/Widgets/Admin/IPBlock.vala` | `lib/admin_ip_block.rb` | row | no |
 | `src/Widgets/Admin/Report.vala` | `lib/admin_report.rb` | row | no |
 
-## Dropdown list factories (`data/gtk/dropdown/*.ui`, 13 files)
+## Dropdown list factories (`data/gtk/dropdown/*.ui`, 12 files)
 
 No backing source file of their own; each is a `GtkListItemFactory` used by a
 dropdown in the composer or preferences, and each merges into the Ruby file of
@@ -287,27 +309,36 @@ Not UI, but no view can be built without them: `src/Services/Network/*`
 
 ## Blockers and open questions
 
-1. **Scale.** 147 component files, 36 `.ui` files, 2135 upstream widget rows
-   against 5 in the port. Full parity is not one work item; it needs a
+1. **Scale.** 146 component files (52 `Views`, 35 `Dialogs`, 59 `Widgets`),
+   40 `.ui` files, 2135 upstream widget rows against 33 in the port — the
+   shell, not a page. Full parity is not one work item; it needs a
    `PLAN.md` that sequences units (window+sidebar → `Status` → `Timeline` →
    Home → composer → the rest).
-2. **GtkSourceView.** The composer editor is `GtkSource.View` with four
-   completion providers and three custom `.lang` definitions
-   (`data/langs/fedi-*.lang`). Confirm the Ruby `gtksourceview5` binding is in
-   the dev shell before planning the composer; the symbol table built here had
-   no `GtkSource` rows.
-3. **GStreamer.** `Widgets/AudioPlayer/*` and the media viewer need playback
-   and an audio visualiser; check the binding exists.
-4. **libsecret.** `SecretAccountStore` keeps tokens in the keyring; a port
-   without it cannot log in at all.
+2. **GtkSourceView is not in the dev shell.** The composer editor is
+   `GtkSource.View` with four completion providers and three custom `.lang`
+   definitions (`data/langs/fedi-*.lang`). Probed in the fork's shell:
+   `require "gtksourceview5"` raises `LoadError`, and the symbol table built
+   here has no `GtkSource` rows. The composer unit needs either the gem added
+   to `Gemfile`/`flake.nix` or a `Gtk::TextView` substitute — decide before
+   planning it, not during.
+3. **GStreamer is not in the dev shell.** `Widgets/AudioPlayer/*` and the
+   media viewer need playback and an audio visualiser; `require "gst"` and
+   `require "gstreamer"` both raise `LoadError`. Same decision as above.
+4. **libsecret is not in the dev shell.** `SecretAccountStore` keeps tokens in
+   the keyring and `require "secret"` raises `LoadError`; a port without it
+   cannot log in at all. `gio2` is available, so `Gio` is an option for the
+   non-secret half of the account store.
 5. **Blurhash / Exif / ICU.** `src/Utils/Blurhash.vala`, `Exif.vala` and the
    `vapi/icu-uc.vapi` wrapper are C-level dependencies with no obvious Ruby
    equivalent — decide per unit whether to reimplement in Ruby or drop.
 6. **Translations.** 158 files in `po/POTFILES`, 46 locales. Decide early
    whether the port carries the catalogue (`translation-parity` skill) or ships
    English only.
-7. **Shortcuts gap.** `app.shortcuts` is referenced by
+7. ~~**Shortcuts gap.**~~ Resolved: `app.shortcuts` is referenced by
    `data/gtk/shortcuts-dialog.ui` and the sidebar menu but never installed in
-   `Application.vala`'s action table — resolve before copying the action list.
+   upstream's `Application.vala` action table — libadwaita installs it for an
+   `Adw.Application` that ships the dialog in its `gtk/` resource directory.
+   The port has no GResource bundle, so `lib/application.rb` installs the
+   action itself and presents `ShortcutsWindow`.
 8. **Two emoji choosers.** `CustomEmojiChooser` and `CustomEmojiChooserV2` both
    exist upstream; find which is live before porting both.
