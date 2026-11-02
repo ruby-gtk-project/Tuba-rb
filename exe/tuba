@@ -3,4 +3,4 @@
 
 require "tuba"
 
-Tuba::Application.new.build.run
+Application.new.build.run
