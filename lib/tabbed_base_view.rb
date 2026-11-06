@@ -42,7 +42,12 @@ class TabbedBaseView < BaseView
 
       # The tabs bring their own scrolling, so the view stack replaces the
       # base view's scrolled page inside the state stack, and the state stack
-      # becomes the toolbar view's content directly.
+      # becomes the toolbar view's content directly. `states` is still parented
+      # inside the overlay BaseView#build put it in, and Adw.ToolbarView#content=
+      # asserts its new content is unparented, so that has to be cleared first
+      # or the reparent is silently refused (with a CRITICAL on stderr) and the
+      # toolbar view is left showing the overlay instead.
+      scrolled_overlay.child = nil
       toolbar_view.content = states
       states.remove(scrolled)
       states.add_named(stack, 'content')
