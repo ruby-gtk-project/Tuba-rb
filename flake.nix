@@ -25,6 +25,9 @@
           libadwaita
           harfbuzz
           librsvg
+          gexiv2_0_16
+          libspelling
+          libsoup_3
         ]
         # The Ruby `pkg-config` gem resolves `Requires.private` transitively and
         # hard-fails if any .pc in the chain is missing, so gtk4's whole private
