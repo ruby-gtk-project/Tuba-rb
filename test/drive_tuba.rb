@@ -56,6 +56,7 @@ require 'style'
 require 'vote_check_button'
 require 'list_box_row_wrapper'
 require 'widgetizable'
+require 'avatar'
 require_relative 'gtk_driver'
 
 SHOTS = File.expand_path('../tmp/shots', __dir__)
@@ -216,6 +217,27 @@ GtkDriver.drive(Application.new, shots: SHOTS) do |d, app|
     opened = []
     ListBoxRowWrapper.new.on_open { opened << true }.open
     d.check('a row wrapper notifies every subscriber it was opened') { opened.length == 1 }
+  end
+
+  d.step('house widgets: Avatar starts on initials, then follows an account') do
+    avatar = Avatar.new
+    d.check('a fresh avatar falls back to the default glyph') do
+      avatar.custom_image.nil? && avatar.size == Avatar::DEFAULT_SIZE
+    end
+    d.check('it is a flat circular image button') do
+      %w[flat circular image-button].all? { |klass| avatar.has_css_class?(klass) }
+    end
+
+    # No avatar: value kept untouched (nil), so #fetch_avatar is never
+    # reached — this environment has no network, and the point of this
+    # check is the no-avatar branch of #account=, not the HTTP fetch.
+    account = Struct.new(:display_name, :avatar).new('Ada Lovelace', nil)
+    avatar.account = account
+    d.check('assigning an account is retained') { avatar.account == account }
+    d.check('a nil avatar leaves the custom image unset') { avatar.custom_image.nil? }
+
+    avatar.size = 32
+    d.check('size is settable and readable') { avatar.size == 32 }
   end
 
   d.step('widgetizable: the defaults are loud, not silent') do
