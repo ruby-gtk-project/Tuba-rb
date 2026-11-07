@@ -15,13 +15,27 @@
 #
 # Run it from the repository root:
 #
-#   nix develop --command xvfb-run -a -s '-screen 0 1920x1080x24' ruby test/drive_tuba.rb
+#   nix develop --command xvfb-run -a ruby test/drive_tuba.rb
 #
 # GTK4 has no offscreen backend on this machine - gtk_init fails outright with
-# no display - so xvfb-run is not optional here. The -s screen size matters
-# too: xvfb-run's default virtual screen is 640x480, which clamps every
-# toplevel's width to 640 regardless of what settings or set_default_size
-# ask for, and silently puts every "wide" view into its narrow breakpoint.
+# no display - so xvfb-run is not optional here.
+#
+# This script does not trust the ambient display's size. xvfb-run's own
+# default virtual screen is 640x480, which clamps every toplevel's width to
+# 640 regardless of what settings or set_default_size ask for, and silently
+# puts every "wide" view into its narrow breakpoint - a run with that default
+# screen deterministically fails "wide views keep the large-view padding"
+# while reporting every other check green, which is a worse outcome than an
+# honest failure. Rather than document a required `-s` flag that the standard
+# `xvfb-run -a` invocation everywhere else in this repo omits (and that a
+# forgotten flag then silently breaks), the block below re-execs itself under
+# a nested Xvfb sized wide enough, the first time it runs. The outer display,
+# whatever its size, is never touched; a second, independent X server is
+# started on its own display number and handed to the real run.
+unless ENV['TUBA_DRIVE_DISPLAY_SIZED']
+  ENV['TUBA_DRIVE_DISPLAY_SIZED'] = '1'
+  exec('xvfb-run', '-a', '-s', '-screen 0 1920x1080x24', 'ruby', __FILE__, *ARGV)
+end
 
 require 'fileutils'
 require 'tmpdir'
@@ -51,6 +65,8 @@ require 'content_base_view'
 require 'tabbed_base_view'
 require 'shortcuts_window'
 require 'profile_menu'
+require 'composer'
+require 'utils_exif'
 require 'settings'
 require 'style'
 require 'vote_check_button'
@@ -100,7 +116,7 @@ GtkDriver.drive(Application.new, shots: SHOTS) do |d, app|
     d.check('the window child is the root view') { app.window.child == app.root_view }
     d.check('the view knows its window') { app.root_view.window == app.window }
     d.check('the actions are installed') do
-      %w[about shortcuts quit scroll-page-down scroll-page-up].all? { |name| app.app.has_action?(name) }
+      %w[about compose shortcuts quit scroll-page-down scroll-page-up].all? { |name| app.app.has_action?(name) }
     end
     # GTK normalises what set_accels_for_action was given, so the upstream
     # spelling "<Ctrl>Q" comes back as "<Control>q".
@@ -340,6 +356,73 @@ GtkDriver.drive(Application.new, shots: SHOTS) do |d, app|
   d.step('about dialog: screenshot, then close it') do
     d.shot('07-about-dialog', dialog_toplevel)
     dialog_toplevel&.close
+  end
+
+  d.step('composer: opens from the app action, with spellcheck and an alt-text field') do
+    before = Gtk::Window.list_toplevels
+    app.app.lookup_action('compose').activate(nil)
+    dialog_toplevel = (Gtk::Window.list_toplevels - before).first
+    d.check('a new toplevel appeared') { !dialog_toplevel.nil? }
+    d.check('it is titled for the composer') { dialog_toplevel&.title == 'New Post' }
+  end
+
+  d.step('composer: libspelling actually runs over what gets typed') do
+    composer = Composer.new(settings: app.settings).tap(&:build)
+    buffer = composer.instance_variable_get(:@buffer)
+    tag = buffer.tag_table.lookup('misspelled')
+
+    buffer.text = 'this sentnce has a typo'
+    composer.send(:check_spelling)
+
+    d.check('a misspelled word is tagged') do
+      iter = buffer.get_iter_at(offset: buffer.text.index('sentnce'))
+      iter.has_tag?(tag)
+    end
+    d.check('a correctly spelled word is not tagged') do
+      iter = buffer.get_iter_at(offset: buffer.text.index('this'))
+      !iter.has_tag?(tag)
+    end
+
+    composer.send(:window).destroy
+  end
+
+  d.step('composer: gexiv2 actually extracts alt text from a real file') do
+    require 'gdk_pixbuf2'
+    require 'tmpdir'
+
+    Dir.mktmpdir do |dir|
+      path = File.join(dir, 'attachment.png')
+      GdkPixbuf::Pixbuf.new(colorspace: :rgb, has_alpha: false, bits_per_sample: 8, width: 2, height: 2).savev(path, 'png')
+
+      metadata = GExiv2::Metadata.new
+      metadata.open_path(path)
+      metadata.set_tag_string('Xmp.dc.description', 'lang="x-default" A photo of a cat')
+      metadata.save_file(path)
+
+      d.check('Utils::Exif reads the embedded alt text back') do
+        Utils::Exif.extract_alt_text(path) == 'A photo of a cat'
+      end
+      d.check('a file:// URI is handled the same way') do
+        Utils::Exif.extract_alt_text("file://#{path}") == 'A photo of a cat'
+      end
+
+      composer = Composer.new(settings: app.settings).tap(&:build)
+      composer.send(:on_image_chosen, path)
+      d.check('the composer prefills the alt-text row from the image metadata') do
+        composer.send(:alt_text_row).text == 'A photo of a cat'
+      end
+
+      composer.send(:window).destroy
+    end
+  end
+
+  d.step('composer: screenshot, then close it') do
+    d.shot('08-composer-dialog', dialog_toplevel)
+    dialog_toplevel&.close
+  end
+
+  d.step('composer: closed cleanly') do
+    d.check('no stray toplevel left behind') { Gtk::Window.list_toplevels.length == 1 }
   end
 
   d.step('profile menu: the hinted section plus every item') do

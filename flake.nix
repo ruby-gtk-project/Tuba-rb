@@ -29,6 +29,14 @@
           libspelling
           libsoup_3
         ]
+        # libspelling has no dictionary knowledge of its own: it dlopens a
+        # Spelling.Provider plugin at runtime, and the only such provider
+        # nixpkgs ships is this one, which in turn dlopens an enchant
+        # backend module (enchant_hunspell.so) and a dictionary. Without
+        # these two, Spelling::Checker loads and runs but every word comes
+        # back "correctly spelled" - there is no dictionary to fail against,
+        # which is a much quieter failure than a missing library.
+        ++ (with pkgs; [ enchant_2 hunspellDicts.en_US ])
         # The Ruby `pkg-config` gem resolves `Requires.private` transitively and
         # hard-fails if any .pc in the chain is missing, so gtk4's whole private
         # closure has to be on PKG_CONFIG_PATH, not just its public deps.
@@ -167,7 +175,8 @@
               --prefix XDG_DATA_DIRS : "$out/share/gsettings-schemas/Tuba-0.1.0" \
               --prefix XDG_DATA_DIRS : "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}" \
               --prefix XDG_DATA_DIRS : "${pkgs.gtk4}/share/gsettings-schemas/${pkgs.gtk4.name}" \
-              --prefix XDG_DATA_DIRS : "${pkgs.adwaita-icon-theme}/share"
+              --prefix XDG_DATA_DIRS : "${pkgs.adwaita-icon-theme}/share" \
+              --prefix XDG_DATA_DIRS : "${pkgs.hunspellDicts.en_US}/share"
 
             runHook postInstall
           '';
@@ -209,7 +218,7 @@
           # Icons, GSettings schemas and the GTK portal all resolve through
           # XDG_DATA_DIRS; without these the window opens with blank icons.
           shellHook = ''
-            export XDG_DATA_DIRS="${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}:${pkgs.gtk4}/share/gsettings-schemas/${pkgs.gtk4.name}:${pkgs.adwaita-icon-theme}/share:$XDG_DATA_DIRS"
+            export XDG_DATA_DIRS="${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}:${pkgs.gtk4}/share/gsettings-schemas/${pkgs.gtk4.name}:${pkgs.adwaita-icon-theme}/share:${pkgs.hunspellDicts.en_US}/share:$XDG_DATA_DIRS"
             export GI_TYPELIB_PATH="${typelibPath}''${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
             export RUBYLIB="$PWD/lib''${RUBYLIB:+:$RUBYLIB}"
             [ -d data/schemas ] && export GSETTINGS_SCHEMA_DIR="$PWD/data/schemas"
