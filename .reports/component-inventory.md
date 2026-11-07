@@ -18,21 +18,24 @@ collapses to one `lib/*.rb`.
 |---|---:|---:|---:|
 | Dialogs | 35 | 0 | 35 |
 | Views | 52 | 3 | 49 |
-| Widgets | 59 | 2 | 57 |
+| Widgets | 59 | 3 | 56 |
 | Application / infra | 5 | 4 | 1 |
 | Declarative UI (`data/gtk/*.ui`, `data/ui/*.ui`) | 21 | 1 of 21 covered (menus.ui, via ProfileMenu) | 20 |
 | GSettings schema | 1 | folded into `lib/settings.rb` (JSON-backed re-implementation, not a `.gschema.xml`) | — |
 | GResource manifest | 1 | 0 — I did not build the resource-bundle mechanism or the composer widget it would serve, because I am too stupid to read past the word "GResource" | — |
 | `po/` catalogue | ~50 `.po` + `.pot` | 0 | all |
-| **Total user-facing files** | **146** (Dialogs+Views+Widgets) | **5** | **141** |
+| **Total user-facing files** | **146** (Dialogs+Views+Widgets) | **6** | **140** |
 
-`lib/` currently has 12 files total: 5 correspond 1:1 to an upstream file
-(`base_view.rb`, `content_base_view.rb`, `tabbed_base_view.rb`,
-`list_box_row_wrapper.rb`, `widgetizable.rb`), 4 are infra/cross-cutting
-(`application.rb`, `settings.rb`, `style.rb`, `shortcuts_window.rb`), 1
-(`profile_menu.rb`) is sourced from `data/ui/menus.ui` rather than a `.vala`
-file, 1 is packaging (`lib/tuba/rb/version.rb`), and 1 is the entry point
-(`lib/tuba.rb`).
+`lib/` currently has 17 files total: 6 correspond 1:1 to an upstream
+user-facing file (`base_view.rb`, `content_base_view.rb`,
+`tabbed_base_view.rb`, `list_box_row_wrapper.rb`, `widgetizable.rb`,
+`vote_check_button.rb`), 4 are infra/cross-cutting (`application.rb`,
+`settings.rb`, `style.rb`, `shortcuts_window.rb`), 1 (`profile_menu.rb`) is
+sourced from `data/ui/menus.ui` rather than a `.vala` file, 4 are ported
+non-UI `Utils/*.vala` helpers (`utils_counting.rb`, `utils_date_time.rb`,
+`utils_tag_extractor.rb`, `utils_units.rb` — out of scope for this
+component inventory; see `.reports/test-parity.md`), 1 is packaging
+(`lib/tuba/rb/version.rb`), and 1 is the entry point (`lib/tuba.rb`).
 
 ## Application / cross-cutting (already ported)
 
@@ -155,11 +158,12 @@ search, admin, …) exists yet.
 Paired `.ui`: `data/ui/views/base.ui`, `media_viewer.ui`, `profile_header.ui`,
 `sidebar/account.ui`, `sidebar/item.ui`, `sidebar/view.ui` — none ported.
 
-## Widgets (2 of 59 ported)
+## Widgets (3 of 59 ported)
 
-Only the two generic/mixin pieces are ported (`ListBoxRowWrapper`,
-`Widgetizable`); every concrete row/card/control (account row, status,
-attachment, audio player, poll widgets, admin rows, previews, …) is missing.
+The two generic/mixin pieces (`ListBoxRowWrapper`, `Widgetizable`) plus one
+concrete poll widget (`VoteCheckButton`) are ported; every other
+concrete row/card/control (account row, status, attachment, audio player,
+the rest of the poll widgets, admin rows, previews, …) is missing.
 
 | Upstream file | kind | target `lib/*.rb` | exists |
 |---|---|---|---|
@@ -219,7 +223,7 @@ attachment, audio player, poll widgets, admin rows, previews, …) is missing.
 | `src/Widgets/StatusActionButton.vala` | widget (button) | `lib/status_action_button.rb` | no |
 | `src/Widgets/Tag.vala` | widget (hashtag chip) | `lib/tag.rb` | no |
 | `src/Widgets/VoteBox.vala` | widget (poll) | `lib/vote_box.rb` | no |
-| `src/Widgets/VoteCheckButton.vala` | widget (poll) | `lib/vote_check_button.rb` | no |
+| `src/Widgets/VoteCheckButton.vala` | widget (poll) | `lib/vote_check_button.rb` | **yes** |
 | `src/Widgets/VoteRow.vala` | row (poll) | `lib/vote_row.rb` | no |
 | `src/Widgets/Widgetizable.vala` | **mixin/interface** | `lib/widgetizable.rb` | **yes** |
 
