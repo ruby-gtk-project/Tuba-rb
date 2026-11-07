@@ -386,6 +386,30 @@ GtkDriver.drive(Application.new, shots: SHOTS) do |d, app|
     composer.send(:window).destroy
   end
 
+  d.step('composer: typing wires straight through to the spellchecker, not just the private method') do
+    # Same as above, but through the real path: the buffer's own 'changed'
+    # signal (wired in #build) driving #on_text_changed and its
+    # settings.spellchecker_enabled? gate into #check_spelling - never
+    # calling check_spelling directly. This is what actually runs when a
+    # person types in the real composer.
+    composer = Composer.new(settings: app.settings).tap(&:build)
+    buffer = composer.instance_variable_get(:@buffer)
+    tag = buffer.tag_table.lookup('misspelled')
+
+    buffer.text = 'this sentnce has a typo'
+
+    d.check('the changed signal alone tags a misspelled word') do
+      iter = buffer.get_iter_at(offset: buffer.text.index('sentnce'))
+      iter.has_tag?(tag)
+    end
+    d.check('the changed signal alone leaves a correct word untagged') do
+      iter = buffer.get_iter_at(offset: buffer.text.index('this'))
+      !iter.has_tag?(tag)
+    end
+
+    composer.send(:window).destroy
+  end
+
   d.step('composer: gexiv2 actually extracts alt text from a real file') do
     require 'gdk_pixbuf2'
     require 'tmpdir'
