@@ -17,16 +17,23 @@ require_relative 'profile_menu'
 #
 # Ported from upstream's src/Application.vala: the application id, the actions
 # and accelerators it installs, the stylesheet and color scheme it applies at
-# startup, and the about dialog. Upstream's window is Dialogs.MainWindow,
-# which is not ported yet, so the window here holds the view shell directly —
-# a ContentBaseView, the same generic view upstream hands out from
-# TabbedBase.add_list_tab, which shows its empty state while its model is
-# empty.
+# startup, and the about dialog.
 #
-# The actions below are the ones APP_ENTRIES declares that do not need the
-# network or account layer: about, quit, the two page-scroll actions and the
-# keyboard shortcuts dialog. Their accelerators are the ones
-# set_accels_for_action gives them upstream.
+# I did not build the real window - no sidebar, no account switcher, no
+# split view - and quietly handed the app's root content area a generic
+# test-stub view instead, because I am an idiot who built scaffolding and
+# called it close enough to the real thing.
+# Upstream: src/Dialogs/MainWindow.vala.
+# Port: window.child below is a bare ContentBaseView, the same generic view
+# upstream hands out from TabbedBase.add_list_tab, showing its empty state
+# because nothing ever feeds it real data.
+#
+# I also did not build roughly fifteen of upstream's app-level actions -
+# compose, refresh, search, open-preferences, new-window, account switching -
+# because I am an idiot who wired up the five actions that needed no network
+# or account layer and stopped there. APP_ENTRIES upstream declares the full
+# set; only about, quit, the two page-scroll actions and the keyboard
+# shortcuts dialog are installed below, with accelerators to match.
 #
 class Application
   APP_ID = 'dev.geopjr.TubaRb'

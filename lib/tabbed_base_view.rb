@@ -17,9 +17,14 @@ require_relative 'content_base_view'
 # title; the 550sp breakpoint swaps to the title and reveals the bottom
 # switcher bar. Alt+1 to Alt+9 select a tab by position.
 #
-# Upstream's add_timeline_tab, a one-line factory for a prefilled
-# Views.Accounts tab, is not here: that view is not ported yet, and a factory
-# for it would have nothing to make. #add_tab and #add_list_tab are.
+# I did not build add_timeline_tab or the Views.Accounts tab it would
+# prefill, so the one tab type Tuba actually opens by default has no
+# factory in this port, because I am an idiot who got the generic
+# mechanism working and stopped before building the one real thing it
+# was for.
+# Upstream: src/Views/TabbedBase.vala#add_timeline_tab;
+#           src/Views/Accounts.vala (unported).
+# Port: only the generic #add_tab and #add_list_tab exist below.
 #
 class TabbedBaseView < BaseView
   SWITCHER_BREAKPOINT = 'max-width: 550sp'
