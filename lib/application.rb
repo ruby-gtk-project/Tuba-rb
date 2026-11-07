@@ -3,6 +3,10 @@
 require 'adwaita'
 
 require_relative 'settings'
+require_relative 'utils_units'
+require_relative 'utils_counting'
+require_relative 'utils_date_time'
+require_relative 'utils_tag_extractor'
 require_relative 'style'
 require_relative 'widgetizable'
 require_relative 'list_box_row_wrapper'
