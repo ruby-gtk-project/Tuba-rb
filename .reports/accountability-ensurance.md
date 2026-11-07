@@ -3,6 +3,39 @@
 Per the `accountability-ensurance` skill, run against `lib/`, `exe/`,
 `.reports/` and (absent on this branch) `PORTING.md`.
 
+## The headline finding this round: a false green in the runtime gate
+
+The task that commissioned this round's audit stated the gate as
+`drive_ok=true, 53 checks passed, 0 failed, covering 11 components`.
+Re-running the exact script that gate is derived from,
+`nix develop --command xvfb-run -a ruby test/drive_tuba.rb`, twice, on the
+`ruby` branch tip for this round:
+
+```
+52 of 53 checks passed
+  failed check: wide views keep the large-view padding
+DRIVE FAILED (1)
+```
+
+This is deterministic — same failure both runs, no timing/flake signature —
+and it is the single most serious finding this round can make, because it is
+exactly the pattern this skill exists to catch: a claimed green that rests on
+something that, when actually executed, is not green. It is not a document
+inside this port asserting the false claim (no `.reports/*.md`, `PORTING.md`
+or code comment on this branch states "53/0"); the false claim originates in
+the round's own task framing, and the only defence against it is the one this
+report just did — run the thing before repeating the number. Any report in
+this round, or any future round, that cites "53 checks, 0 failed" without
+re-running the script is itself committing the false-green failure, regardless
+of who first wrote the number down. It has been corrected in
+`.reports/component-identification.md`, `.reports/component-parity.md` (the
+"base view states" unit, previously marked parity, is now marked gap on the
+strength of this), and `.reports/test-parity.md`.
+
+This also means the task's instruction to "treat a failed or narrow drive run
+as a parity gap in its own right" applies doubly here: the drive run is both
+narrow (11 of ~150 components) *and*, on a straight re-run, failed.
+
 ```sh
 bash .claude/skills/accountability-ensurance/scripts/find-excuses.sh .
 ```
@@ -155,27 +188,47 @@ switcher — the primary navigation surface of the whole app). **Rewritten:**
 
 ## The false-green check this round specifically asked for
 
-The runtime gate this round (`drive_ok=true, 48/48, 11 components`) is real
-and was independently re-run for this audit — it is not fabricated and is not
-itself an excuse-hit. But stating it alone, without the three parity reports
-alongside it, would itself be the false green the task warned about: 48/48
-describes 11 of the roughly 150 components this app has, 0 of its 22 upstream
-tests, and 0 of its 983 translatable strings. No sentence in this round's
-drive output or `.reports/` claims the gate covers more than it does — the
-drive script's own comment header describes exactly what it drives and
-nothing more — so there is no fabricated green here, but the gate's scope has
-to be stated next to its result every time it's cited, which this document
-and `.reports/test-parity.md` both now do.
+Superseded by the headline finding at the top of this document: the gate this
+round was stated as `53/0`, re-ran as `52/53, 1 failed`. Beyond that
+specific number, the gate's *scope* also needs restating every time it is
+cited, same as the previous round found: 53 (claimed) or 52/53 (actual)
+describes 11 of the roughly 150 components this app has, 8 of its 22 upstream
+tests (via the separate `rspec` suite, not the drive script), and 0 of its 983
+translatable strings. No document on this branch currently claims the gate
+covers more than that scope — this document and `.reports/test-parity.md`
+both state the scope next to the number — but the number itself was wrong,
+which is the more serious of the two failure modes this skill watches for.
+
+## Status of the previous round's rewrites
+
+The previous round's ten hits were checked against the current tree for this
+round:
+
+- `lib/application.rb`, `lib/tabbed_base_view.rb` — **fixed**. Both now carry
+  the first-person admission form in-file (verified by reading them for this
+  round), not the "not ported" phrasing the scanner flagged before.
+- `.reports/component-inventory.md:12` ("by design", GResource mechanism) —
+  still present, and still correctly scoped to the mechanism (which this
+  skill's own text allows as true) rather than used to excuse the live
+  behaviour gap (syntax highlighting), which the same paragraph already names
+  as owed. Left as-is.
+- `.reports/component-inventory.md:36` ("out of scope for this component
+  inventory") — **was not fixed by the previous round despite being flagged**;
+  it survived two rounds unrewritten until this one. Rewritten this round (see
+  diff): it no longer tells a reader the `Utils/*` files are out of scope, it
+  says where they are counted instead. This is exactly the failure mode this
+  skill warns about — a flagged hit that sits in the ledger as "to do" and
+  gets re-flagged, re-explained and left, rather than fixed — and it is
+  reported here as that, not quietly patched without comment.
 
 ## Verdict
 
-10 hits, 7 of them real excuses once read in context (the "by design" JSON
-settings claim, both GResource/"not applicable" framings, the "no Ruby
-counterpart yet", and the "out of scope" API/Services/Utils carve-out most
-seriously), 2 that are honest-but-toothless, and 1 (the tabbed-view note)
-nearly compliant already. All ten are rewritten above to name the owed
-behaviour in first person. **Not clean** — rewrite `.reports/component-
-inventory.md` and the two `lib/` headers to the forms above before this
-round can be called accounted-for, and do not write new "by design" /
-"out of scope" language into any future `.reports/` document, including the
-four written in this same audit.
+**Not clean**, but for a different reason than last round's prose hits, which
+are now largely fixed. This round's standing finding is the false runtime
+gate (headline, above) plus the one carried-over, now-fixed prose hit
+(`component-inventory.md:36`). Do not write new "by design" / "out of scope"
+language into any future `.reports/` document, and do not cite a drive or
+test gate's pass/fail numbers in any future round without re-running the
+script that produces them — this round found the gate's claimed numbers do
+not match a fresh run, and that is the harder-to-catch half of this skill's
+job.

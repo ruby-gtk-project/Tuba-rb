@@ -6,6 +6,14 @@ already and its numbers check out against a fresh count — this document
 re-verifies them and adds the axes that file alone doesn't carry (signals,
 actions, controllers) for the units the port actually has.
 
+**This pass (re-run against `ruby` @ `0dd5a528`)**: `lib/avatar.rb` landed
+since the previous round's document and is not in the table below's previous
+revision; it is added here. `lib/` is now 19 files, not 13: the four
+`utils_*.rb` files (counting, date_time, tag_extractor, units) landed in the
+same stretch and are counted in `.reports/test-parity.md` and
+`.reports/component-inventory.md`, not duplicated here since they build no
+widget.
+
 ## Re-verified upstream totals
 
 ```
@@ -37,16 +45,42 @@ report adds.
 | `list_box_row_wrapper.rb` | (part of `ContentBase.vala` / `Widgetizable` pattern) | `Gtk.ListBoxRow` wrapper | — | re-emits "opened" to subscribers | — |
 | `widgetizable.rb` | (mixin pattern, no single upstream file) | n/a (interface) | — | — | — |
 | `vote_check_button.rb` | `src/Widgets/VoteCheckButton.vala` | `Gtk.CheckButton`/radio variant | centred, mode tag | `toggled` | — |
+| `avatar.rb` | `src/Widgets/Avatar.vala` | `Gtk.Button` (flat, circular) wrapping `Adw.Avatar` | `flat`, `circular` | none wired (upstream's `mini_clicked` signal / popover on click is not built — see component-parity report) | — |
 | `profile_menu.rb` | `data/ui/menus.ui` (`profile-menu`) | `Gio::Menu` model | — | — | menu items only, no handlers checked here |
 | `shortcuts_window.rb` | `data/gtk/shortcuts-dialog.ui` | `Adwaita::ShortcutsDialog`, 3 sections, 17 items | — | — | — |
 | `settings.rb` | `data/dev.geopjr.Tuba.gschema.xml` + `src/Services/Settings.vala` | n/a | — | — | — |
 | `style.rb` | `data/style.css`, `data/eggs/*.css` | n/a | loads CSS inline | — | — |
 | `tuba.rb`, `lib/tuba/rb/version.rb` | entry point / packaging | — | — | — | — |
 
-13 files total, 5 of which map 1:1 to a real upstream widget/view file, 2 more
+14 files total, 6 of which map 1:1 to a real upstream widget/view file, 2 more
 are composite/mixin plumbing invented by the port (`widgetizable.rb`,
 `list_box_row_wrapper.rb`) with no single upstream counterpart (acceptable —
 house-style factoring, not a gap), and the rest are infra.
+
+## Runtime gate, re-run for this audit
+
+The task description for this round states `drive_ok=true, 53 checks passed,
+0 failed, covering 11 components`. Re-running the same script this round
+found:
+
+```
+nix develop --command xvfb-run -a ruby test/drive_tuba.rb
+...
+52 of 53 checks passed
+  failed check: wide views keep the large-view padding
+DRIVE FAILED (1)
+```
+
+Reproduced twice, deterministically (not a flake). The claimed gate
+(53 passed, 0 failed) does not match what the script on this commit actually
+does — see `.reports/accountability-ensurance.md` for this finding treated as
+what it is, a false green, and `.reports/component-parity.md` for the base
+view breakpoint unit it implicates. The component count is otherwise
+consistent: 11 components (application shell, settings, base view, content
+base view, widgetizable, vote check button, profile menu, avatar, tabbed
+view, shortcuts dialog, about dialog) are exercised by the drive script, out
+of roughly 150 upstream units — a runtime gate over 11 is not evidence about
+the other ~139, and on a fresh run it is not "0 failed" either.
 
 ## What has no file at all (confirmed absent, not just unticked)
 

@@ -18,23 +18,25 @@ collapses to one `lib/*.rb`.
 |---|---:|---:|---:|
 | Dialogs | 35 | 0 | 35 |
 | Views | 52 | 3 | 49 |
-| Widgets | 59 | 3 | 56 |
+| Widgets | 59 | 4 | 55 |
 | Application / infra | 5 | 4 | 1 |
 | Declarative UI (`data/gtk/*.ui`, `data/ui/*.ui`) | 21 | 1 of 21 covered (menus.ui, via ProfileMenu) | 20 |
 | GSettings schema | 1 | folded into `lib/settings.rb` (JSON-backed re-implementation, not a `.gschema.xml`) | — |
 | GResource manifest | 1 | 0 — I did not build the resource-bundle mechanism or the composer widget it would serve, because I am too stupid to read past the word "GResource" | — |
 | `po/` catalogue | ~50 `.po` + `.pot` | 0 | all |
-| **Total user-facing files** | **146** (Dialogs+Views+Widgets) | **6** | **140** |
+| **Total user-facing files** | **146** (Dialogs+Views+Widgets) | **7** | **139** |
 
-`lib/` currently has 17 files total: 6 correspond 1:1 to an upstream
-user-facing file (`base_view.rb`, `content_base_view.rb`,
+`lib/` currently has 19 files total (re-verified for this audit): 7 correspond
+1:1 to an upstream user-facing file (`base_view.rb`, `content_base_view.rb`,
 `tabbed_base_view.rb`, `list_box_row_wrapper.rb`, `widgetizable.rb`,
-`vote_check_button.rb`), 4 are infra/cross-cutting (`application.rb`,
+`vote_check_button.rb`, `avatar.rb`), 4 are infra/cross-cutting (`application.rb`,
 `settings.rb`, `style.rb`, `shortcuts_window.rb`), 1 (`profile_menu.rb`) is
 sourced from `data/ui/menus.ui` rather than a `.vala` file, 4 are ported
 non-UI `Utils/*.vala` helpers (`utils_counting.rb`, `utils_date_time.rb`,
-`utils_tag_extractor.rb`, `utils_units.rb` — out of scope for this
-component inventory; see `.reports/test-parity.md`), 1 is packaging
+`utils_tag_extractor.rb`, `utils_units.rb`) that build no widget and so carry
+no row in this document's widget-centric table — they are counted instead in
+`.reports/test-parity.md`, where their 8 ported upstream tests live — 1 is
+packaging
 (`lib/tuba/rb/version.rb`), and 1 is the entry point (`lib/tuba.rb`).
 
 ## Application / cross-cutting (already ported)
@@ -158,10 +160,10 @@ search, admin, …) exists yet.
 Paired `.ui`: `data/ui/views/base.ui`, `media_viewer.ui`, `profile_header.ui`,
 `sidebar/account.ui`, `sidebar/item.ui`, `sidebar/view.ui` — none ported.
 
-## Widgets (3 of 59 ported)
+## Widgets (4 of 59 ported)
 
-The two generic/mixin pieces (`ListBoxRowWrapper`, `Widgetizable`) plus one
-concrete poll widget (`VoteCheckButton`) are ported; every other
+The two generic/mixin pieces (`ListBoxRowWrapper`, `Widgetizable`) plus two
+concrete widgets (`VoteCheckButton`, `Avatar`) are ported; every other
 concrete row/card/control (account row, status, attachment, audio player,
 the rest of the poll widgets, admin rows, previews, …) is missing.
 
@@ -185,7 +187,7 @@ the rest of the poll widgets, admin rows, previews, …) is missing.
 | `src/Widgets/AudioPlayer/Player.vala` | widget | `lib/audio_player_player.rb` | no |
 | `src/Widgets/AudioPlayer/Stream.vala` | non-widget helper | `lib/audio_player_stream.rb` | no |
 | `src/Widgets/AudioPlayer/Visualizer.vala` | widget | `lib/audio_player_visualizer.rb` | no |
-| `src/Widgets/Avatar.vala` | widget | `lib/avatar.rb` | no |
+| `src/Widgets/Avatar.vala` | widget | `lib/avatar.rb` | yes (image fetch/mini-profile/accessibility gaps — see component-parity report) |
 | `src/Widgets/Background.vala` | widget | `lib/background.rb` | no |
 | `src/Widgets/BookWyrmPage.vala` | widget (link-preview card) | `lib/book_wyrm_page.rb` | no |
 | `src/Widgets/Collection.vala` | row | `lib/collection.rb` | no |

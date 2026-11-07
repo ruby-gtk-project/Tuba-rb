@@ -4,7 +4,16 @@
 |---|---|
 | Upstream | `origin/main` @ `3ff8d0c6` (fix(ci): android apt (#1791)) |
 | Port | `ruby` @ `b67c1339` |
-| Units with parity | 7 / ~140 |
+| Units with parity | 8 / ~140 |
+
+**Runtime gate correction.** The task that commissioned this round of reports
+asserted `drive_ok=true, 53 checks passed, 0 failed`. Re-running
+`test/drive_tuba.rb` under the dev shell for this audit, twice, gives:
+`52 of 53 checks passed`, `failed check: wide views keep the large-view
+padding`, `DRIVE FAILED (1)`. That failure is folded into the "base view
+states" unit below — it was previously reported clean and is not. See
+`.reports/accountability-ensurance.md` for this treated as the false-green
+finding it is.
 
 Per the `component-parity` skill, parity is claimed **per unit**, never as an
 app-wide total. The units below are the only ones with anything on the port
@@ -42,14 +51,18 @@ translation axis is not, and one failing axis is a gap per the skill's rule).
 ## Unit: base view states — `src/Views/Base.vala` -> `lib/base_view.rb`
 
 Loading / empty / error / content states, breakpoint padding, scroll-to-top:
-all four driven checks pass (`shows the empty state`, `shows the error title,
-message and icon`, `shows the reload button`, `wide views keep the
-large-view padding` / `narrow views drop it`). No upstream signal or CSS class
-found unaccounted for in this file specifically.
+three of four driven checks pass (`shows the empty state`, `shows the error
+title, message and icon`, `shows the reload button`, `narrow views drop it`).
+The fourth, `wide views keep the large-view padding`, **fails** on a clean,
+twice-reproduced run of `test/drive_tuba.rb` on this commit — see the gate
+correction above. The port builds the `large-view` CSS class and the breakpoint
+that should add it for narrow views, but the wide-view case that should carry
+it does not, which is a real behavioural regression in the one file this unit
+tests, not a flake.
 
-Verdict: **parity**, for the states and breakpoints this file owns. (This is
-the base class `ContentBase`, `TabbedBase` and every real view build on —
-parity here does not extend to those subclasses, most of which don't exist.)
+Verdict: **gap**. Previously reported as parity on the strength of a drive run
+that has since been shown not to reproduce; re-verify after a fix lands, do
+not take a future green run on faith without re-running it for this report.
 
 ## Unit: tabbed view — `src/Views/TabbedBase.vala` -> `lib/tabbed_base_view.rb`
 
@@ -83,6 +96,24 @@ the vote-submission API call are all unported), so the component itself has
 parity in isolation but is unreachable from any real screen in the app.
 
 Verdict: **parity** (isolated unit only).
+
+## Unit: `Avatar` — `src/Widgets/Avatar.vala` -> `lib/avatar.rb`
+
+| Facet | Up | Port | Verdict |
+|---|---|---|---|
+| Widget | `Gtk.Button` (flat, circular) wrapping `Adw.Avatar` | same | parity |
+| CSS | `flat`, `circular` | `flat`, `circular` (driven check: "it is a flat circular image button") | parity |
+| Image fetch | `Tuba.Helper.Image`, an app-wide disk cache | direct `Soup::Session` fetch, no cache | **gap** — in-file admission, named with upstream file:line, not excused |
+| Mini profile popover | `#allow_mini_profile` pops `Views.Profile.ProfileAccount`, emits `mini_clicked` on click | not built; no signal connected at all (confirmed: `grep -n 'signal\|connect' lib/avatar.rb` finds none) | **gap** — no click behaviour of any kind on this button, upstream or otherwise |
+| Accessible description | `#alternative_text=` sets an accessibility-description property | left out (binding cannot marshal the array-of-enum argument; documented in-file with the exact GIArgument error) | **gap**, real binding limit — recorded here and belongs in `FINDINGS.md`, not just this file's comment |
+
+Verdict: **parity** for the widget/CSS axes driven by the test; **gap** on
+behaviour (the button does nothing when clicked — upstream's whole point of
+wrapping a `Gtk.Button` around the avatar is the click) and on the
+accessibility axis. Isolated unit: no `Views::Profile`, no account-data
+source, nothing in the app actually constructs an `Avatar` with a live
+account yet (`grep -rn 'Avatar.new' lib/ exe/` finds only the drive script's
+fixture).
 
 ## Flat gaps — no port file, not a partial unit
 

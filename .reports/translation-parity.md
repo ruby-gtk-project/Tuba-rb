@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Upstream | `origin/main` @ `3ff8d0c6` |
-| Port | `ruby` @ `b67c1339` |
+| Port | `ruby` @ `0dd5a528` |
 | Upstream msgids | 983 (`po/dev.geopjr.Tuba.pot`, 984 `msgid "` lines minus the 1 empty header) |
 | Upstream languages shipped | 47 (`po/LINGUAS`) + the template |
 | Port msgids | 0 |
@@ -58,8 +58,9 @@ person who touches this file — as already handled.
 ## Three claims, all failing
 
 1. **Key sets equal.** 0 vs 983. Not close.
-2. **Byte-identical keys.** Not applicable — the port extracts no keys to
-   compare.
+2. **Byte-identical keys.** There are no port keys to compare bytes against —
+   the port extracts zero, so this claim fails for the same reason as claim 1
+   rather than independently of it.
 3. **Languages ship.** 0 of 47. A port with a `po/` directory and an empty
    `.po` would at least preserve the *infrastructure*; this port has none of
    it, so there is nothing for a translator to resume work on, and no build
