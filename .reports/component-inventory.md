@@ -16,23 +16,26 @@ collapses to one `lib/*.rb`.
 
 | Category | upstream files | ported (exist in `lib/`) | missing |
 |---|---:|---:|---:|
-| Dialogs | 35 | 0 | 35 |
+| Dialogs | 35 | 1 (partial) | 34 (+1 partial) |
 | Views | 52 | 3 | 49 |
 | Widgets | 59 | 4 | 55 |
 | Application / infra | 5 | 4 | 1 |
 | Declarative UI (`data/gtk/*.ui`, `data/ui/*.ui`) | 21 | 1 of 21 covered (menus.ui, via ProfileMenu) | 20 |
 | GSettings schema | 1 | folded into `lib/settings.rb` (JSON-backed re-implementation, not a `.gschema.xml`) | — |
-| GResource manifest | 1 | 0 — I did not build the resource-bundle mechanism or the composer widget it would serve, because I am too stupid to read past the word "GResource" | — |
+| GResource manifest | 1 | 0 — I did not build the resource-bundle mechanism; the composer widget it would serve for syntax highlighting (`SandwichSourceView`'s `.lang` files) still has no Ruby counterpart even though `lib/composer.rb` now exists as a stand-in for the rest of the composer | — |
 | `po/` catalogue | ~50 `.po` + `.pot` | 0 | all |
-| **Total user-facing files** | **146** (Dialogs+Views+Widgets) | **7** | **139** |
+| **Total user-facing files** | **146** (Dialogs+Views+Widgets) | **8** (1 partial) | **138** |
 
 `lib/` currently has 19 files total (re-verified for this audit): 7 correspond
 1:1 to an upstream user-facing file (`base_view.rb`, `content_base_view.rb`,
 `tabbed_base_view.rb`, `list_box_row_wrapper.rb`, `widgetizable.rb`,
-`vote_check_button.rb`, `avatar.rb`), 4 are infra/cross-cutting (`application.rb`,
-`settings.rb`, `style.rb`, `shortcuts_window.rb`), 1 (`profile_menu.rb`) is
-sourced from `data/ui/menus.ui` rather than a `.vala` file, 4 are ported
-non-UI `Utils/*.vala` helpers (`utils_counting.rb`, `utils_date_time.rb`,
+`vote_check_button.rb`, `avatar.rb`), 1 (`composer.rb`) is a partial stand-in
+for three upstream Composer files (`Dialog.vala`, `Editor.vala`'s spellcheck,
+`Attachment.vala`'s alt-text extraction — see the Dialogs table), 4 are
+infra/cross-cutting (`application.rb`, `settings.rb`, `style.rb`,
+`shortcuts_window.rb`), 1 (`profile_menu.rb`) is sourced from
+`data/ui/menus.ui` rather than a `.vala` file, 4 are ported non-UI
+`Utils/*.vala` helpers (`utils_counting.rb`, `utils_date_time.rb`,
 `utils_tag_extractor.rb`, `utils_units.rb`) that build no widget and so carry
 no row in this document's widget-centric table — they are counted instead in
 `.reports/test-parity.md`, where their 8 ported upstream tests live — 1 is
@@ -64,16 +67,16 @@ packaging
 | `src/Dialogs/Collection.vala` | dialog | `lib/collection_dialog.rb` | no |
 | `src/Dialogs/Collections.vala` | dialog | `lib/collections_dialog.rb` | no |
 | `src/Dialogs/Composer/Attachable.vala` | interface/mixin for composer | `lib/composer_attachable_dialog.rb` | no |
-| `src/Dialogs/Composer/Attachment.vala` | composer sub-widget | `lib/composer_attachment_dialog.rb` | no |
+| `src/Dialogs/Composer/Attachment.vala` | composer sub-widget | `lib/composer_attachment_dialog.rb` | partial — alt-text prefill via gexiv2 lives in `lib/composer.rb#on_image_chosen`, no standalone attachment row widget |
 | `src/Dialogs/Composer/AttachmentsBin.vala` | composer sub-widget | `lib/composer_attachments_bin_dialog.rb` | no |
 | `src/Dialogs/Composer/Completion/CompletionProvider.vala` | composer autocomplete base | `lib/composer_completion_completion_provider_dialog.rb` | no |
 | `src/Dialogs/Composer/Completion/EmojiProvider.vala` | composer autocomplete | `lib/composer_completion_emoji_provider_dialog.rb` | no |
 | `src/Dialogs/Composer/Completion/HandleProvider.vala` | composer autocomplete | `lib/composer_completion_handle_provider_dialog.rb` | no |
 | `src/Dialogs/Composer/Completion/HashtagProvider.vala` | composer autocomplete | `lib/composer_completion_hashtag_provider_dialog.rb` | no |
-| `src/Dialogs/Composer/Dialog.vala` | the post composer | `lib/composer_dialog_dialog.rb` | no |
+| `src/Dialogs/Composer/Dialog.vala` | the post composer | `lib/composer.rb` | partial — ported as a minimal stand-in (text box + attach button) wired into `lib/application.rb`; no visibility picker, no polls, no content warnings, no multi-attachment carousel, no actual posting (no account/network layer yet) |
 | `src/Dialogs/Composer/Drafts.vala` | composer drafts list | `lib/composer_drafts_dialog.rb` | no |
 | `src/Dialogs/Composer/DropOverlay.vala` | composer drag-drop overlay | `lib/composer_drop_overlay_dialog.rb` | no |
-| `src/Dialogs/Composer/Editor.vala` | composer text editor | `lib/composer_editor_dialog.rb` | no |
+| `src/Dialogs/Composer/Editor.vala` | composer text editor | `lib/composer_editor_dialog.rb` | partial — spellcheck via `Spelling::Checker` lives in `lib/composer.rb#check_spelling` over a plain `Gtk::TextBuffer`, not a `GtkSource.Buffer`-backed editor widget (gtksourceview5 is not a dependency) |
 | `src/Dialogs/Composer/Polls.vala` | composer poll editor | `lib/composer_polls_dialog.rb` | no |
 | `src/Dialogs/Composer/PreferredSizeBin.vala` | composer layout helper | `lib/composer_preferred_size_bin_dialog.rb` | no |
 | `src/Dialogs/Composer/Schedule.vala` | composer schedule picker | `lib/composer_schedule_dialog.rb` | no |
@@ -93,7 +96,9 @@ packaging
 Paired `.ui`: `data/ui/dialogs/admin_dashboard.ui`, `advanced_search.ui`,
 `composer.ui`, `filter_edit.ui`, `list_edit.ui`, `main.ui`, `new_account.ui`,
 `notification_settings.ui`, `preferences.ui`, `profile_edit.ui`,
-`schedule.ui` — none have a Ruby counterpart yet.
+`schedule.ui` — none have a Ruby counterpart yet, except `composer.ui`,
+whose widget tree `lib/composer.rb` only partially reproduces (see the
+Composer rows above).
 
 ## Views (3 of 52 ported)
 
