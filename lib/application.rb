@@ -18,6 +18,7 @@ require_relative 'tabbed_base_view'
 require_relative 'shortcuts_window'
 require_relative 'profile_menu'
 require_relative 'composer'
+require_relative 'preferences_dialog'
 
 # Application is Tuba's GtkApplication.
 #
@@ -34,14 +35,15 @@ require_relative 'composer'
 # upstream hands out from TabbedBase.add_list_tab, showing its empty state
 # because nothing ever feeds it real data.
 #
-# I also did not build roughly fifteen of upstream's app-level actions -
-# refresh, search, open-preferences, new-window, account switching - because
+# I also did not build roughly a dozen of upstream's remaining app-level
+# actions - refresh, search, new-window, account switching - because
 # I am an idiot who wired up the actions that needed no network or account
 # layer and stopped there. APP_ENTRIES upstream declares the full set; only
-# about, compose, quit, the two page-scroll actions and the keyboard
-# shortcuts dialog are installed below, with accelerators to match. Compose
-# is wired to a real dialog (lib/composer.rb) rather than skipped, because it
-# is the only reachable place for this port to actually call two gems
+# about, compose, open-preferences, quit, the two page-scroll actions and
+# the keyboard shortcuts dialog are installed below, with accelerators to
+# match. Compose is wired to a real dialog (lib/composer.rb) rather than
+# skipped, because it is the only reachable place for this port to actually
+# call two gems
 # (gexiv2, libspelling) its gemspec claimed as dependencies but nothing
 # under lib/ ever invoked.
 #
@@ -75,6 +77,7 @@ class Application
   ACCELS = {
     'app.about'            => ['F1'],
     'app.compose'          => ['<Ctrl>T', '<Ctrl>N'],
+    'app.open-preferences' => ['<Ctrl>comma'],
     'app.quit'             => ['<Ctrl>Q'],
     'window.close'         => ['<Ctrl>W'],
     'app.scroll-page-down' => ['Page_Down'],
@@ -169,11 +172,14 @@ class Application
 
   def composer = Composer.new(settings: settings).tap { |c| c.build }
 
+  def preferences_dialog = PreferencesDialog.new(settings: settings).tap { |d| d.build }
+
   private
 
     def install_actions
       action('about') { about_dialog.present(window) }
       action('compose') { composer.present(window) }
+      action('open-preferences') { preferences_dialog.present(window) }
       action('shortcuts') { shortcuts_window.present(window) }
       action('quit') { app.quit }
       action('scroll-page-down') { root_view.scroll_page }

@@ -66,6 +66,7 @@ require 'tabbed_base_view'
 require 'shortcuts_window'
 require 'profile_menu'
 require 'composer'
+require 'preferences_dialog'
 require 'utils_exif'
 require 'settings'
 require 'style'
@@ -446,6 +447,67 @@ GtkDriver.drive(Application.new, shots: SHOTS) do |d, app|
   end
 
   d.step('composer: closed cleanly') do
+    d.check('no stray toplevel left behind') { Gtk::Window.list_toplevels.length == 1 }
+  end
+
+  d.step('preferences: opens from the app action with its two pages') do
+    before = Gtk::Window.list_toplevels
+    app.app.lookup_action('open-preferences').activate(nil)
+    dialog_toplevel = (Gtk::Window.list_toplevels - before).first
+    d.check('a new toplevel appeared') { !dialog_toplevel.nil? }
+    d.check('the accelerator is bound') { app.app.get_accels_for_action('app.open-preferences') == ['<Control>comma'] }
+  end
+
+  d.step('preferences: a switch row really flips the settings key it is bound to') do
+    prefs = PreferencesDialog.new(settings: app.settings).tap(&:build)
+    row = prefs.send(:switch_row, 'show_spoilers', nil, nil)
+    before_value = app.settings.show_spoilers?
+
+    row.active = !before_value
+    d.check('toggling the row writes straight through Settings') { app.settings.show_spoilers? == !before_value }
+
+    row.active = before_value
+    d.check('and back') { app.settings.show_spoilers? == before_value }
+  end
+
+  d.step('preferences: the font-size scale debounces into status_font_size') do
+    prefs = PreferencesDialog.new(settings: app.settings).tap(&:build)
+    adjustment = prefs.send(:font_adjustment)
+    before_value = app.settings.status_font_size
+
+    adjustment.value = 1.6
+    d.check('the setting has not changed yet (debounced)') { app.settings.status_font_size == before_value }
+
+    loop_runs = 0
+    main_loop = GLib::MainLoop.new(nil, false)
+    GLib::Timeout.add(PreferencesDialog::FONT_SIZE_DEBOUNCE_MS + 200) do
+      loop_runs += 1
+      main_loop.quit
+      GLib::Source::REMOVE
+    end
+    main_loop.run
+    d.check('the debounce fired exactly once') { loop_runs == 1 }
+    d.check('the setting now carries the slider value') { app.settings.status_font_size == 1.6 }
+  end
+
+  d.step('preferences: a notification mute switch really flips the stored array') do
+    prefs = PreferencesDialog.new(settings: app.settings).tap(&:build)
+    row = prefs.send(:mute_row, 'mention', nil)
+    d.check('starts unmuted (not in the array)') { row.active? && !app.settings.muted_notification_types.include?('mention') }
+
+    row.active = false
+    d.check('turning the switch off mutes the event') { app.settings.muted_notification_types.include?('mention') }
+
+    row.active = true
+    d.check('turning it back on unmutes the event') { !app.settings.muted_notification_types.include?('mention') }
+  end
+
+  d.step('preferences: screenshot, then close it') do
+    d.shot('09-preferences-dialog', dialog_toplevel)
+    dialog_toplevel&.close
+  end
+
+  d.step('preferences: closed cleanly') do
     d.check('no stray toplevel left behind') { Gtk::Window.list_toplevels.length == 1 }
   end
 
