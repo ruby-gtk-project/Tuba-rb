@@ -74,6 +74,7 @@ require 'vote_check_button'
 require 'list_box_row_wrapper'
 require 'widgetizable'
 require 'avatar'
+require 'utils_blurhash'
 require_relative 'gtk_driver'
 
 SHOTS = File.expand_path('../tmp/shots', __dir__)
@@ -516,6 +517,20 @@ GtkDriver.drive(Application.new, shots: SHOTS) do |d, app|
     d.check('the top level has the hinted section plus its items') do
       menu.n_items == 1 + ProfileMenu::PROFILE_ITEMS.length + 2
     end
+  end
+
+  d.step('blurhash: decodes a real blurhash into an actual GdkPixbuf') do
+    blurhash = 'LEHLk~WB2yk8pyo0adR*.7kCMdnj'
+    d.check('a real blurhash decodes to 10x10 RGBA bytes matching the known pixel') do
+      data = Utils::Blurhash.decode_to_data(blurhash, 10, 10)
+      data[8..11] == [153, 170, 176, 255]
+    end
+    d.check('an invalid blurhash decodes to nil') { Utils::Blurhash.decode_to_data('invalid', 10, 10).nil? }
+
+    pixbuf = Utils::Blurhash.blurhash_to_pixbuf(blurhash, 32, 32)
+    d.check('a real GdkPixbuf::Pixbuf comes back, not a stand-in') { pixbuf.is_a?(GdkPixbuf::Pixbuf) }
+    d.check('it carries the requested dimensions') { pixbuf.width == 32 && pixbuf.height == 32 }
+    d.check('a malformed blurhash yields no pixbuf') { Utils::Blurhash.blurhash_to_pixbuf('invalid', 32, 32).nil? }
   end
 
   d.step('app: the scroll-page actions do not blow up with no scrollable view') do
