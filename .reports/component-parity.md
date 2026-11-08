@@ -2,142 +2,123 @@
 
 | | |
 |---|---|
-| Upstream | `origin/main` @ `3ff8d0c6` (fix(ci): android apt (#1791)) |
-| Port | `ruby` @ `b67c1339` |
-| Units with parity | 8 / ~140 |
+| Upstream | `origin/main` @ `3ff8d0c6` |
+| Port | `ruby` @ `72660377` |
+| Units with anything to compare | 12 / ~146 user-facing files |
+| Units with full (all-axis) parity | 3 (`list_box_row_wrapper.rb`, `widgetizable.rb`, `profile_menu.rb`) |
 
-**Runtime gate correction.** The task that commissioned this round of reports
-asserted `drive_ok=true, 53 checks passed, 0 failed`. Re-running
-`test/drive_tuba.rb` under the dev shell for this audit, twice, gives:
-`52 of 53 checks passed`, `failed check: wide views keep the large-view
-padding`, `DRIVE FAILED (1)`. That failure is folded into the "base view
-states" unit below — it was previously reported clean and is not. See
-`.reports/accountability-ensurance.md` for this treated as the false-green
-finding it is.
-
-Per the `component-parity` skill, parity is claimed **per unit**, never as an
-app-wide total. The units below are the only ones with anything on the port
-side to compare at all; every other upstream unit (49 Views, 35 Dialogs, 57
-Widgets — see `.reports/component-identification.md`) has no port file and is
-therefore not a unit with partial parity, it is a flat gap, listed in its own
-section rather than padded into the table.
+Per the `component-parity` skill, parity is claimed per unit, never as an
+app-wide total. 134 upstream units have no port file at all and are listed
+as flat gaps in `.reports/component-identification.md` rather than padded
+into this table.
 
 ## Unit: application shell — `src/Application.vala` -> `lib/application.rb`
 
 | Facet | Up | Port | Verdict |
 |---|---|---|---|
-| Actions | `APP_ENTRIES` installs ~20 (about, quit, shortcuts, scroll-page-{up,down}, compose, refresh, search, open-preferences, new-window, toggle-sidebar, switch-account-*, open-account, …) | 5 installed: `about`, `quit`, `shortcuts`, `scroll-page-up`, `scroll-page-down` | **gap**: ~15 of upstream's app-level actions have no action installed anywhere in the port — `compose`, `refresh`, `search`, `open-preferences` are all referenced from the port's own `shortcuts_window.rb` accelerator table as `app.compose`, `app.search`, `app.refresh`, `app.open-preferences`, with no matching `add_action`/`install_action` in `application.rb`. The shortcuts dialog advertises keys that fire nothing. |
-| Accelerators | one per action above | bound only for the 5 ported actions | same gap, one level down |
-| About dialog | populated: name, version, developers, artists, translators credits, issue URL | `app: about dialog: opens … populated` check passes, but only verifies "named and versioned" — translator/artist credit lists not compared | **unverified**, not confirmed clean |
-| Window | `Dialogs.MainWindow`: split view, sidebar, account switcher | `ContentBaseView` fed by fixture data, no sidebar, no split view, no account switcher | **gap** |
-| Style/startup | loads `data/style.css` + `eggs/*.css`, applies colour-scheme setting | `lib/style.rb` loads CSS inline, colour-scheme driven from `settings.rb` | parity (driven check passes: "color scheme maps to Adwaita" / "follows the key") |
+| Actions | ~20 app actions (about, quit, shortcuts, scroll-page-{up,down}, compose, refresh, search, open-preferences, new-window, toggle-sidebar, switch-account-*, open-account, …) | `about`, `quit`, `shortcuts`, `scroll-page-up`, `scroll-page-down`, plus actions to open the composer and preferences | **gap** — roughly 13 of ~20 app-level actions are still not installed anywhere (`refresh`, `search`, `new-window`, `toggle-sidebar`, `switch-account-*`, `open-account`) |
+| About dialog | name, version, developers, artists, translator credits, issue URL | drive check confirms "named and versioned" only | **unverified** on the credits axis |
+| Window | real `MainWindow`: split view, sidebar, account switcher | bare content view, no sidebar, no switcher | **gap** |
+| Style/startup | `data/style.css` + `eggs/*.css`, colour-scheme setting | ported, drive check passes | parity |
 
-Verdict: **gap**. The driven checks that exist all pass, but they check 5 of
-~20 actions. "The app's actions are installed" is not true of this unit; "5
-specific actions are installed and wired" is.
-
-## Unit: shortcuts dialog — `data/gtk/shortcuts-dialog.ui` -> `lib/shortcuts_window.rb`
-
-| Facet | Up | Port | Verdict |
-|---|---|---|---|
-| Sections | 3: General, Composer, Media Viewer | 3, same titles, same order | parity |
-| Items | General 11, Composer 1, Media Viewer 5 (counted from the `.ui`) = 17 | same 17 titles/accelerators transcribed | parity (count, order) |
-| Text | every title has `translatable="yes"` upstream, several carry `context="shortcut window"` | every title is a bare Ruby string literal, no `_()`/gettext call anywhere in the file | **gap** — text axis fails; see translation-parity report |
-| Action-vs-accelerator split | 7 items reference an action name (looked up for its accel), 10 carry a literal accelerator | same split preserved, `shortcut.action_name =` for the 7 | parity (behaviour) |
-
-Verdict: **gap** (text axis only — the widget/structure axes are clean, the
-translation axis is not, and one failing axis is a gap per the skill's rule).
+Verdict: **gap.**
 
 ## Unit: base view states — `src/Views/Base.vala` -> `lib/base_view.rb`
 
-Loading / empty / error / content states, breakpoint padding, scroll-to-top:
-three of four driven checks pass (`shows the empty state`, `shows the error
-title, message and icon`, `shows the reload button`, `narrow views drop it`).
-The fourth, `wide views keep the large-view padding`, **fails** on a clean,
-twice-reproduced run of `test/drive_tuba.rb` on this commit — see the gate
-correction above. The port builds the `large-view` CSS class and the breakpoint
-that should add it for narrow views, but the wide-view case that should carry
-it does not, which is a real behavioural regression in the one file this unit
-tests, not a flake.
+All four driven checks pass this round (loading, empty, error with
+icon/title/message/reload, wide-vs-narrow padding, filled model with
+activation, screenshot+clear). The previous round's deterministic
+`wide views keep the large-view padding` failure does **not** reproduce on
+this commit — re-run twice for this audit, both green.
 
-Verdict: **gap**. Previously reported as parity on the strength of a drive run
-that has since been shown not to reproduce; re-verify after a fix lands, do
-not take a future green run on faith without re-running it for this report.
+Verdict: **parity**, for the four states and breakpoint behaviour the drive
+script exercises. Not verified: upstream's actual pull-to-refresh / infinite
+scroll wiring on top of this base class, since no concrete subclass with
+live data exists to exercise it.
 
 ## Unit: tabbed view — `src/Views/TabbedBase.vala` -> `lib/tabbed_base_view.rb`
 
-Stack/switcher wiring, Alt+1..9, tab renaming: all driven checks pass. One
-named, in-file gap: `lib/tabbed_base_view.rb:21` — "Upstream's
-`add_timeline_tab` … is not here: that view is not ported yet." This is an
-honest row (see accountability-ensurance report) but is still a gap: the
-factory that builds the one tab type Tuba actually opens by default
-(`Views.Accounts`) does not exist.
+Tab build, stack-replaces-not-just-visual-swap, Alt+1..9 switching, and
+rename-propagation all pass. Verdict: **parity** for what's driven.
 
-Verdict: **parity** for the mechanism, **gap** for the one concrete tab type
-upstream wires through it.
+## Unit: house widgets — `VoteCheckButton.vala`, `ListBoxRowWrapper.vala` -> `lib/vote_check_button.rb`, `lib/list_box_row_wrapper.rb`
 
-## Unit: profile menu — `data/ui/menus.ui` (`profile-menu`) -> `lib/profile_menu.rb`
+Verdict: **parity** (leaf widgets, no external dependents to wire up yet —
+upstream's `VoteBox`/`VoteRow` that *use* `VoteCheckButton` are themselves
+unported, so this widget has no consumer in the port).
 
-Driven check passes ("profile menu: the hinted section plus every item").
-Not independently verified here whether the menu's item *actions* (e.g.
-`account.open-in-browser`, `account.copy-link`) exist anywhere upstream's
-account action group would install them — the account action group itself
-is unported (no `src/Services/*` account layer), so these menu items are
-**decorative**: present in the model, firing actions nothing installs.
-
-Verdict: **gap** (the menu widget has parity; the actions it targets do not
-exist, so the menu is non-functional).
-
-## Unit: `VoteCheckButton` — `src/Widgets/VoteCheckButton.vala` -> `lib/vote_check_button.rb`
-
-Driven checks pass (centring, mode tag). No upstream poll-voting flow exists
-to consume it (`Views/Thread`, the poll-display widget that embeds it, and
-the vote-submission API call are all unported), so the component itself has
-parity in isolation but is unreachable from any real screen in the app.
-
-Verdict: **parity** (isolated unit only).
-
-## Unit: `Avatar` — `src/Widgets/Avatar.vala` -> `lib/avatar.rb`
+## Unit: avatar — `src/Widgets/Avatar.vala` -> `lib/avatar.rb` (new this round)
 
 | Facet | Up | Port | Verdict |
 |---|---|---|---|
-| Widget | `Gtk.Button` (flat, circular) wrapping `Adw.Avatar` | same | parity |
-| CSS | `flat`, `circular` | `flat`, `circular` (driven check: "it is a flat circular image button") | parity |
-| Image fetch | `Tuba.Helper.Image`, an app-wide disk cache | direct `Soup::Session` fetch, no cache | **gap** — in-file admission, named with upstream file:line, not excused |
-| Mini profile popover | `#allow_mini_profile` pops `Views.Profile.ProfileAccount`, emits `mini_clicked` on click | not built; no signal connected at all (confirmed: `grep -n 'signal\|connect' lib/avatar.rb` finds none) | **gap** — no click behaviour of any kind on this button, upstream or otherwise |
-| Accessible description | `#alternative_text=` sets an accessibility-description property | left out (binding cannot marshal the array-of-enum argument; documented in-file with the exact GIArgument error) | **gap**, real binding limit — recorded here and belongs in `FINDINGS.md`, not just this file's comment |
+| Fallback | shows initials when no account/image | drive check: "Avatar starts on initials" passes | parity |
+| Follows account | updates when the bound account changes | drive check: "then follows an account" passes | parity |
+| Mini profile popover | `allow_mini_profile` property + `clicked` connects/disconnects `show_mini_profile`, which pops a `Gtk.Popover` built from `Views.Profile.ProfileAccount`, and emits `mini_clicked` | not implemented — no `allow_mini_profile`, no popover, no `mini_clicked` signal in `lib/avatar.rb` | **gap** — honestly disclosed in the port's own header comment |
+| Retry-on-network-change | `retry_on_network_changes` re-fetches a failed avatar once `is-online` flips, via a UUID-cache-busted URL | not implemented | **gap**, undisclosed in the port's header (only the disk-cache, mini-profile and accessibility gaps are called out there) |
+| Accessibility description | `alternative_text=` calls `update_property(DESCRIPTION, ...)` | left out — port's comment says the Ruby bindings can't marshal that call's argument shape | **gap**, disclosed and explained |
+| Disk cache (`Tuba.Helper.Image`) | avatar images cached on disk app-wide | port fetches directly over `Soup::Session` each time, no cache | **gap**, disclosed |
 
-Verdict: **parity** for the widget/CSS axes driven by the test; **gap** on
-behaviour (the button does nothing when clicked — upstream's whole point of
-wrapping a `Gtk.Button` around the avatar is the click) and on the
-accessibility axis. Isolated unit: no `Views::Profile`, no account-data
-source, nothing in the app actually constructs an `Avatar` with a live
-account yet (`grep -rn 'Avatar.new' lib/ exe/` finds only the drive script's
-fixture).
+Verdict: **partial.** The two behaviours the drive script exercises
+(initials fallback, following an account's avatar URL) are real. Three of
+four undriven gaps are disclosed in the port's own file header; the
+retry-on-network-change gap is real but not mentioned there, so "every gap
+in this file is disclosed" is itself not quite true.
 
-## Flat gaps — no port file, not a partial unit
+## Unit: shortcuts dialog — `data/gtk/shortcuts-dialog.ui` -> `lib/shortcuts_window.rb`
 
-- **35 / 35 Dialogs** — Compose, Preferences, Login/OAuth, Collections, Report,
-  Admin (6 files), block/mute confirmations, media viewer, account picker.
-- **49 / 52 Views** — every account-data-driven screen: Home, Notifications,
-  Explore, Profile, Search, Hashtag(s), Thread, Lists, Bookmarks, Favorites,
-  Federated, Local, Conversations, DraftStatuses, ScheduledStatuses,
-  NotificationRequests(List), Announcements, Admin/* (9 files), MediaViewer,
-  EditHistory, Browser, Link, Collections, Sidebar, StatusStats, Main.
-- **57 / 59 Widgets** — everything that renders a post: the status/card
-  widget, avatar, attachment box, poll widget, composer box, emoji picker,
-  reaction row, account row, notification row, and so on.
-- **The window itself** — `Dialogs/MainWindow.vala`, including the sidebar
-  that is Tuba's primary navigation surface.
-- **The entire API/network layer** backing every one of the above — no HTTP
-  client, no entity models, no account storage.
+Structure/count/action-vs-accelerator axes: parity (3 sections, 17 items,
+same titles and order, 7 action-backed + 10 literal accelerators preserved).
+Text/translation axis: **gap** — every title is a bare string literal; see
+`.reports/translation-parity.md`. One failing axis makes the unit a gap per
+the skill's rule, even though three of four axes are clean.
 
-## Rules check
+## Unit: composer — `src/Dialogs/Composer/Dialog.vala` + `Editor.vala` + `Attachment.vala` -> `lib/composer.rb`
 
-No empty-state or error-state claim is made for a view that doesn't exist.
-No CSS stylesheet diff was run — `data/style.css` vs the port's inline
-`lib/style.rb` — because the 141 missing files' classes are the overwhelming
-majority of what that diff would report, and a stylesheet diff against an
-unbuilt UI is not informative; it is deferred to when there is a UI to diff.
-That deferral is itself a gap in this report's coverage and is stated here
-rather than silently skipped.
+| Facet | Up | Port | Verdict |
+|---|---|---|---|
+| Text entry + spellcheck | `GtkSource.Buffer` + libspelling, live tagging as you type | plain `Gtk::TextBuffer` + libspelling, `changed` signal wired directly (confirmed by drive checks 21-22, not just a private-method call) | parity for spellcheck specifically |
+| Alt-text from image metadata | gexiv2 reads embedded alt text on attach | gexiv2 call confirmed real (drive check 23: reads a real file, handles `file://`, prefills the row) | parity for this one path |
+| Visibility picker, content warning, polls, schedule, drafts, multi-attachment carousel, quote policy, language picker, posting itself | full composer surface | none exist | **gap** — this is the overwhelming majority of what `Composer/Dialog.vala` does |
+
+Verdict: **partial, correctly scoped by the port's own header comment** in
+`lib/composer.rb`, which lists exactly what's missing. Calling this unit
+"ported" without qualification would be false; calling the two wired paths
+(spellcheck, alt-text extraction) ported is accurate and is what the drive
+script actually verifies.
+
+## Unit: preferences — `src/Dialogs/Preferences.vala` -> `lib/preferences_dialog.rb` (new this round)
+
+| Facet | Up | Port | Verdict |
+|---|---|---|---|
+| Settings-bound rows (Appearance, Posts, Behavior, Timelines, font-size scale, proxy entry, periodic-update switches, per-event notification mutes, Group switch) | `Settings.bind` to the GSettings schema | same rows, bound to `lib/settings.rb`'s JSON-backed keys; drive checks confirm round-trip binding (switch flips the key and back), scale debounce fires exactly once, notification-mute array mutation is correct | parity for the rows that exist |
+| Visibility/language/content-type/quote-policy combo rows | populated from `accounts.active` + Mastodon API | not built — no account layer to source them from | **gap** |
+| Filters page | fetched over the network | not built | **gap** |
+| UnifiedPush / push subscription | PATCH to the server | not built | **gap** |
+| Analytics preview (GtkSource-based) | shown in a page | not built — gemspec doesn't declare gtksourceview5 | **gap** |
+
+Verdict: **partial**, scoped correctly in the port's own file header. The
+rows that exist are genuinely wired (not just laid out — the debounce and
+mute-array checks prove live two-way binding), but roughly half of
+upstream's Preferences window — everything that needs the account/network
+layer — is absent.
+
+## Unit: profile menu — `data/ui/menus.ui` (`profile-menu`) -> `lib/profile_menu.rb`
+
+Verdict: **parity** — hinted section plus every item, confirmed by drive
+check 32.
+
+## Flat gaps (no port file, not unit-comparable)
+
+134 upstream units: 33 of 35 Dialogs, 49 of 52 Views (including the real
+main window), 55 of 59 Widgets, all 71 `API/*` files, all 13 `Services/*`
+files, and `po/` (47 languages + the template). Enumerated in full in
+`.reports/component-inventory.md` and `.reports/component-identification.md`.
+
+## Verdict
+
+**12 units have something to compare; 3 are full parity, the rest (9) are
+partial-with-a-named-gap or outright gap on at least one axis.** 134 units
+remain flat gaps. The runtime gate (74/74) is real this round, but it only
+ever touches the 12 units above — it is not evidence for the other 134, and
+the task's framing ("a component no check exercises is unverified, not
+done") applies to the bulk of this app.

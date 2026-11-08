@@ -1,124 +1,113 @@
 # Component identification — Tuba-rb (`ruby` branch vs `origin/main`)
 
-Per the `component-identification` skill. `.reports/component-inventory.md`
-(already present on this branch, dated before this audit) did this work once
-already and its numbers check out against a fresh count — this document
-re-verifies them and adds the axes that file alone doesn't carry (signals,
-actions, controllers) for the units the port actually has.
+Per the `component-identification` skill, re-run for this round.
 
-**This pass (re-run against `ruby` @ `0dd5a528`)**: `lib/avatar.rb` landed
-since the previous round's document and is not in the table below's previous
-revision; it is added here. `lib/` is now 19 files, not 13: the four
-`utils_*.rb` files (counting, date_time, tag_extractor, units) landed in the
-same stretch and are counted in `.reports/test-parity.md` and
-`.reports/component-inventory.md`, not duplicated here since they build no
-widget.
+| | |
+|---|---|
+| Upstream | `origin/main` @ `3ff8d0c6` ("fix(ci): android apt (#1791)") |
+| Port | `ruby` @ `72660377` |
 
 ## Re-verified upstream totals
 
 ```
-git ls-tree -r --name-only origin/main | grep -c '\.vala$'   -> 255
+git ls-tree -r --name-only origin/main | grep -c '\.vala$'      -> 255
 git ls-tree -r --name-only origin/main | grep -cE '\.(blp|ui)$' -> 40
-src/Widgets/**                                                -> 64 files
-src/Views/**                                                   -> 50 files (incl. Admin/*)
-src/Dialogs/**                                                 -> 35 files
-src/Application.vala, src/Dialogs/MainWindow.vala              -> app shell
-po/ : 47 languages (LINGUAS) + 1 .pot, 1020 msgid lines (1019 real strings)
-tests/: 10 files, 22 named Test.add_func cases (see test-parity report)
+po/LINGUAS                                                       -> 47 languages
+po/dev.geopjr.Tuba.pot                                           -> 1020 msgid lines (1019 real strings)
+tests/: 10 .vala test files, 22 named Test.add_func cases (see test-parity report)
 ```
 
-`.reports/component-inventory.md`'s summary table (Dialogs 35/0, Views 52/3,
-Widgets 59/2, total 146 user-facing files / 5 ported) is consistent with this
-recount and is accepted as this unit's inventory rather than redone row by
-row — redoing a 146-file-by-146-file table a second time would not find
-anything that file's reading missed; reading `lib/` directly is what this
-report adds.
+`src/Dialogs/**` = 35 files, `src/Views/**` = 52 files (incl. `Admin/*`),
+`src/Widgets/**` = 59 files, `src/API/**` = 71 files, `src/Services/**` =
+13 files. Total user-facing (Dialogs+Views+Widgets) = **146 files**.
 
-## What `lib/` actually is, read file by file
+## `lib/` file by file, since the last round
 
-| `lib/*.rb` | Upstream file(s) | Widgets built | CSS | Signals wired | Actions installed |
-|---|---|---|---|---|---|
-| `application.rb` | `src/Application.vala` (partial) | none directly; owns `window` | — | — | `app.about`, `app.quit`, `app.shortcuts`, `app.scroll-page-up`, `app.scroll-page-down` (5 of upstream's full `APP_ENTRIES` list — see gap below) |
-| `base_view.rb` | `src/Views/Base.vala` | `Adw.ToolbarView`, `Adw.ViewStack`/states (loading/empty/error/content), scroll-to-top button | breakpoint classes | `notify::` on breakpoint, reload button `clicked` | — |
-| `content_base_view.rb` | `src/Views/ContentBase.vala` | `Gtk.ListBox` over a `Gio::ListStore` | `card`-style rows via `ListBoxRowWrapper` | `row-activated` | — |
-| `tabbed_base_view.rb` | `src/Views/TabbedBase.vala` | `Adw.ViewStack` + `Adw.ViewSwitcher` + bottom switcher bar | 550sp breakpoint | `notify::visible-child`, tab action | `win.change-tab` (Alt+1..9) |
-| `list_box_row_wrapper.rb` | (part of `ContentBase.vala` / `Widgetizable` pattern) | `Gtk.ListBoxRow` wrapper | — | re-emits "opened" to subscribers | — |
-| `widgetizable.rb` | (mixin pattern, no single upstream file) | n/a (interface) | — | — | — |
-| `vote_check_button.rb` | `src/Widgets/VoteCheckButton.vala` | `Gtk.CheckButton`/radio variant | centred, mode tag | `toggled` | — |
-| `avatar.rb` | `src/Widgets/Avatar.vala` | `Gtk.Button` (flat, circular) wrapping `Adw.Avatar` | `flat`, `circular` | none wired (upstream's `mini_clicked` signal / popover on click is not built — see component-parity report) | — |
-| `profile_menu.rb` | `data/ui/menus.ui` (`profile-menu`) | `Gio::Menu` model | — | — | menu items only, no handlers checked here |
-| `shortcuts_window.rb` | `data/gtk/shortcuts-dialog.ui` | `Adwaita::ShortcutsDialog`, 3 sections, 17 items | — | — | — |
-| `settings.rb` | `data/dev.geopjr.Tuba.gschema.xml` + `src/Services/Settings.vala` | n/a | — | — | — |
-| `style.rb` | `data/style.css`, `data/eggs/*.css` | n/a | loads CSS inline | — | — |
-| `tuba.rb`, `lib/tuba/rb/version.rb` | entry point / packaging | — | — | — | — |
+Four files landed since `.reports/component-inventory.md` (the opening
+survey, still accurate as a baseline) was written: `lib/avatar.rb`,
+`lib/utils_counting.rb`, `lib/utils_date_time.rb`, `lib/utils_tag_extractor.rb`,
+`lib/utils_units.rb` (4 utils files, no widgets), and now `lib/preferences_dialog.rb`.
+`lib/` is 19 `.rb` files total (22 including `tuba.rb`, `tuba/rb.rb`,
+`tuba/rb/version.rb`).
 
-14 files total, 6 of which map 1:1 to a real upstream widget/view file, 2 more
-are composite/mixin plumbing invented by the port (`widgetizable.rb`,
-`list_box_row_wrapper.rb`) with no single upstream counterpart (acceptable —
-house-style factoring, not a gap), and the rest are infra.
+| `lib/*.rb` | Upstream source | Widgets built | Signals / actions | Status |
+|---|---|---|---|---|
+| `application.rb` | `src/Application.vala` (partial) | app window holding a bare view shell | 5 of upstream's ~20 app actions (`about`, `quit`, `shortcuts`, `scroll-page-up`, `scroll-page-down`) + composer/preferences open actions | partial |
+| `base_view.rb` | `src/Views/Base.vala` | loading spinner, empty state, error state (icon+title+message+reload button), breakpoint-driven `large-view` class | `notify::model`, reload-button `clicked` | partial base class only |
+| `content_base_view.rb` | `src/Views/ContentBase.vala` | content list/cards | row-activated → open | partial base class only |
+| `tabbed_base_view.rb` | `src/Views/TabbedBase.vala` | `Adw.ViewStack` + tab switching, Alt+1..9 | tab-switch, rename | partial base class only |
+| `widgetizable.rb` | `src/Widgets/Widgetizable.vala` | mixin, no widgets of its own | loud-failure contract | parity (mixin behaviour) |
+| `vote_check_button.rb` | `src/Widgets/VoteCheckButton.vala` | `Gtk.CheckButton` subclass | `toggled` | ported leaf widget |
+| `list_box_row_wrapper.rb` | `src/Widgets/ListBoxRowWrapper.vala` | `Gtk.ListBoxRow` subclass | — | ported leaf widget |
+| `avatar.rb` | `src/Widgets/Avatar.vala` | `Adw.Avatar`-backed widget: initials fallback, then image once an account loads | `notify::account` or equivalent follow-wiring | ported leaf widget — **new this round** |
+| `profile_menu.rb` | `data/ui/menus.ui` (`profile-menu`) | `Gio::Menu` model | menu items | ported |
+| `shortcuts_window.rb` | `data/gtk/shortcuts-dialog.ui` | 3 sections, 17 items | accel/action lookups | ported, text axis untranslated |
+| `composer.rb` | `src/Dialogs/Composer/Dialog.vala` + `Editor.vala` (spellcheck) + `Attachment.vala` (alt-text) | text box, attach button, alt-text row | libspelling `changed` signal → tag-at-cursor, gexiv2 read on file chosen | heavy partial stand-in — no visibility/CW/poll/schedule/drafts/multi-attachment |
+| `preferences_dialog.rb` | `src/Dialogs/Preferences.vala` | General + Notifications pages, switch rows, font-size scale, proxy entry | `Settings.bind`-equivalent two-way binding, debounced scale | ported for the Settings-key-bound rows only — **new this round** |
+| `settings.rb` | `src/Services/Settings.vala` + `.gschema.xml` | — | key-change notify | JSON-backed re-implementation, not an installed GSettings schema |
+| `style.rb` | `data/style.css` + `eggs/*.css` | — | colour-scheme follow | ported |
+| `utils_counting.rb` | `src/Utils/Counting.vala` | — | — | ported (no widget) |
+| `utils_date_time.rb` | `src/Utils/DateTime.vala` | — | — | ported (no widget) |
+| `utils_tag_extractor.rb` | `src/Utils/TagExtractor.vala` | — | — | ported (no widget) |
+| `utils_units.rb` | `src/Utils/Units.vala` | — | — | ported (no widget) |
+| `utils_exif.rb` | `src/Utils/Exif.vala` (new, not previously tracked as its own file — backs `composer.rb`'s alt-text read) | — | — | ported (no widget) |
+
+Nothing else in `lib/` corresponds to an upstream file.
 
 ## Runtime gate, re-run for this audit
-
-The task description for this round states `drive_ok=true, 53 checks passed,
-0 failed, covering 11 components`. Re-running the same script this round
-found:
 
 ```
 nix develop --command xvfb-run -a ruby test/drive_tuba.rb
 ...
-52 of 53 checks passed
-  failed check: wide views keep the large-view padding
-DRIVE FAILED (1)
+74 of 74 checks passed
+DRIVE OK
 ```
 
-Reproduced twice, deterministically (not a flake). The claimed gate
-(53 passed, 0 failed) does not match what the script on this commit actually
-does — see `.reports/accountability-ensurance.md` for this finding treated as
-what it is, a false green, and `.reports/component-parity.md` for the base
-view breakpoint unit it implicates. The component count is otherwise
-consistent: 11 components (application shell, settings, base view, content
-base view, widgetizable, vote check button, profile menu, avatar, tabbed
-view, shortcuts dialog, about dialog) are exercised by the drive script, out
-of roughly 150 upstream units — a runtime gate over 11 is not evidence about
-the other ~139, and on a fresh run it is not "0 failed" either.
+Reproduced live for this round: **74/74, matches the task's stated gate
+exactly.** Unlike the previous round (see `.reports/accountability-ensurance.md`'s
+history section), this is not a false green this time — it was re-run, not
+assumed.
+
+Distinct units exercised by the drive script (counted from its `d.step`
+labels): app shell, settings, base view (loading/empty/error/padding/content),
+house widgets (VoteCheckButton + ListBoxRowWrapper), avatar, widgetizable,
+tabbed view, shortcuts dialog, about dialog, composer (+libspelling+gexiv2),
+preferences, profile menu — **12–14 depending how finely "base view" and
+"composer" are split**, consistent with the task's "14 components" framing.
+
+**A runtime gate over 12–14 components is not evidence about the other
+~132–134 upstream units.** Per the task framing, a component no check
+exercises is unverified, not done — and that is the overwhelming majority of
+this app: every account/network-driven view, every dialog but two, the real
+main window, the whole API/Services layer, and all of `po/`.
 
 ## What has no file at all (confirmed absent, not just unticked)
 
-- **The actual window.** `src/Dialogs/MainWindow.vala` — the real
-  `Adw.ApplicationWindow` with its split view, sidebar, and account switcher —
-  does not exist. `application.rb`'s own header says the window "holds the
-  view shell directly" in its place. There is no sidebar component at all.
-- **Every account/network-driven view.** Home, Notifications, Explore,
-  Profile, Search, Hashtag, Thread, Lists, Bookmarks, Favorites, Federated,
-  Local, Conversations, DraftStatuses, ScheduledStatuses,
-  NotificationRequests, Announcements, Admin/* (9 files), MediaViewer,
-  EditHistory — 49 of 52 `src/Views/*` files. Confirmed zero matches:
-  `grep -rli 'class.*View' lib/ | wc -l` → the only Views subclassed are
-  `BaseView`, `ContentBaseView`, `TabbedBaseView` themselves.
-- **Every dialog.** 35 of 35: Compose/Composer, Preferences, Admin dialogs,
-  Collections, Report, block/mute confirmations, media viewer controls,
-  account picker, login/OAuth flow. `find lib -iname '*dialog*'` returns only
-  `shortcuts_window.rb` (whose class wraps `Adwaita::ShortcutsDialog`, not an
-  app-authored dialog).
-- **The API/data layer.** `src/API/**` (71 files: Status, Account, Instance,
-  Notification, Poll, Filters, Admin/*, Akkoma/Pleroma/PeerTube/BookWyrm/etc.
-  federation compat shims) and `src/Services/**` (account storage, the
-  streaming/network client) have zero Ruby counterpart. Nothing in `lib/`
-  makes an HTTP request. `Application#window` is populated with a
-  locally-constructed `Post`/`Forgetful` test fixture class defined in
-  `test/drive_tuba.rb` itself, not real timeline data.
-- **Login/account management.** No OAuth flow, no account switcher, no
-  multi-account support — the thing the app is named and built around.
-- **`po/`.** No directory, no `.pot`, no gettext call site (see
-  translation-parity report).
+- **The actual window.** `src/Dialogs/MainWindow.vala` — split view, sidebar,
+  account switcher — does not exist. `application.rb` substitutes a bare
+  content view directly.
+- **Every account/network-driven view.** 49 of 52 `src/Views/*` files
+  (confirmed: `grep -rl 'class.*View' lib/` only turns up `BaseView`,
+  `ContentBaseView`, `TabbedBaseView` themselves — no concrete page).
+- **33 of 35 dialogs** (Composer and Preferences are partial stand-ins, not
+  full ports; the other 33 have no file at all).
+- **55 of 59 widgets** (VoteCheckButton, ListBoxRowWrapper, Avatar,
+  Widgetizable are ported; status cards, attachment grids, poll widgets,
+  notification rows, admin rows, the audio player, etc. are not).
+- **The entire API/data layer.** `src/API/**` (71 files) and
+  `src/Services/**` (13 files, incl. account storage and the network/
+  streaming client) have zero Ruby counterpart. Nothing in `lib/` makes an
+  HTTP request; `application.rb`'s window is fed by a fixture class defined
+  in `test/drive_tuba.rb` itself, not live data.
+- **Login / multi-account.** No OAuth flow, no account switcher — the thing
+  the app is organised around.
+- **`po/`.** No directory, no `.pot`, no gettext call site anywhere in
+  `lib/` or `exe/` (see `.reports/translation-parity.md`).
 
 ## Rule check
 
-Per this skill's "Scope it" section, a whole-app inventory's job here is to
-state how much is left, not to pretend a unit-by-unit table over an
-essentially-unported 255-file app is informative. The honest statement: **the
-port has built the application shell and nothing the shell displays.** Every
-visible pixel in a running Tuba window — timelines, posts, avatars, compose
-box, sidebar — is unported. What exists is scaffolding plus three leaf test
-widgets (`VoteCheckButton`, `ListBoxRowWrapper`, a generic `ContentBaseView`
-fed by fixture objects invented for the drive script).
+The honest statement for this round, same shape as last round: **the port
+has built the application shell, a handful of base classes, five leaf
+widgets, and two partial dialogs (Composer, Preferences) — nothing else the
+shell displays.** Every timeline, post, notification, and the real window
+itself remain unported.

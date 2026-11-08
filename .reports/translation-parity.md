@@ -3,47 +3,43 @@
 | | |
 |---|---|
 | Upstream | `origin/main` @ `3ff8d0c6` |
-| Port | `ruby` @ `0dd5a528` |
-| Upstream msgids | 983 (`po/dev.geopjr.Tuba.pot`, 984 `msgid "` lines minus the 1 empty header) |
+| Port | `ruby` @ `72660377` |
+| Upstream msgids | 1019 (`po/dev.geopjr.Tuba.pot`, 1020 `msgid "` lines minus the 1 empty header) |
 | Upstream languages shipped | 47 (`po/LINGUAS`) + the template |
 | Port msgids | 0 |
 | Port languages | 0 |
-| Gaps | 983 / 983 |
+| Gaps | 1019 / 1019 |
 
 ## What exists upstream
 
 ```
 po/LINGUAS                      -> 47 language codes
 po/POTFILES                     -> list of source files containing translatable strings
-po/dev.geopjr.Tuba.pot          -> 984 msgid lines (983 real strings + header)
+po/dev.geopjr.Tuba.pot          -> 1020 msgid lines (1019 real strings + header)
 po/{ar,be,bg,...,zh_Hant}.po    -> 47 translated catalogues
 ```
 
 ## What exists in the port
 
 ```
-find . -iname '*.po' -not -path './.git/*'   -> (nothing)
-find . -name po -not -path './.git/*'         -> (nothing)
-grep -rn "gettext\|N_(\|_(\|msgid" lib/ exe/  -> (nothing; one unrelated comment
-                                                  line in content_base_view.rb
-                                                  mentioning "GLib." in prose,
-                                                  not a call)
+find . -iname '*.po' -not -path './.git/*'    -> (nothing)
+find . -name po -not -path './.git/*'          -> (nothing)
+grep -rn "gettext\|N_(\|_(\|msgid" lib/ exe/   -> (nothing real; see below)
 ```
 
 **No `po/` directory. No `.pot`. No `LINGUAS`. No gettext/FastGettext
 dependency in the `Gemfile`. No `_()`/`N_()`/`gettext()` call site anywhere
-in `lib/` or `exe/`.** Every user-visible string the port currently shows —
-button labels, dialog titles, the shortcuts-dialog item titles, the about
-dialog, empty/error state text in `base_view.rb` — is a bare Ruby string
-literal.
+in `lib/` or `exe/`.** Every user-visible string in the port — button
+labels, dialog titles, shortcuts-dialog item titles, the about dialog,
+empty/error state text, and now every `PreferencesDialog` row title/subtitle
+in `APPEARANCE_ROWS`/`POSTS_ROWS`/`BEHAVIOR_ROWS`/`TIMELINES_ROWS`/
+`ONLINE_SERVICES_ROWS` — is a bare Ruby string literal.
 
-Confirmed directly in `lib/shortcuts_window.rb`: every shortcut title upstream
-marks `translatable="yes"` (several with `context="shortcut window"`) is
-transcribed into the `SECTIONS` hash as a plain string, with `# translators:`
-*comments* left in place above several entries — comments that exist to guide
-a translator extracting the string, written over a string that is never
-extracted, because nothing in this file or anywhere else calls a marker
-function on it.
+Confirmed again, unchanged, in `lib/shortcuts_window.rb`: every shortcut
+title upstream marks `translatable="yes"` is transcribed as a plain string,
+with `# translators:` *comments* left in place above several entries —
+comments that exist to guide extraction over a string that nothing ever
+extracts.
 
 ```ruby
 # lib/shortcuts_window.rb:20
@@ -51,36 +47,31 @@ function on it.
 ['Show Preferences', 'app.open-preferences'],
 ```
 
-This is worse than an unmarked string with no comment: it is a string
-annotated *as if* it were wired for translation, which reads — to the next
-person who touches this file — as already handled.
+**New this round:** `lib/preferences_dialog.rb` adds roughly 30 more
+user-visible row titles/subtitles (e.g. `'Darken Images on Dark Mode'`,
+`'Warn before boosting a post that includes attachments without alt text'`),
+all plain string literals, none marked. `lib/avatar.rb`'s only user-visible
+text is the single-character initials fallback, not translatable upstream
+either, so it contributes nothing new to either side of this count.
 
 ## Three claims, all failing
 
-1. **Key sets equal.** 0 vs 983. Not close.
-2. **Byte-identical keys.** There are no port keys to compare bytes against —
-   the port extracts zero, so this claim fails for the same reason as claim 1
-   rather than independently of it.
-3. **Languages ship.** 0 of 47. A port with a `po/` directory and an empty
-   `.po` would at least preserve the *infrastructure*; this port has none of
-   it, so there is nothing for a translator to resume work on, and no build
-   step compiles or installs any `.mo`.
+1. **Key sets equal.** 0 vs 1019. Not close.
+2. **Byte-identical keys.** No port keys exist to compare.
+3. **Languages ship.** 0 of 47.
 
 ## Why this matters beyond "currently English-only"
 
-Every string written into the port from here on, written without a marker, is
-a second debt on top of the 983 untouched upstream strings — the shortcuts
-dialog alone added 17 new unmarked strings this fork, and the about dialog,
-empty-state titles, and error messages in `base_view.rb` add more. Each one
-is a string a future translation pass has to find by reading source, because
-no extraction tool (`xgettext` or the Ruby/GNOME equivalent) has anything to
-walk.
+Every string written into the port without a marker is a second debt on top
+of the 1019 untouched upstream strings. This round alone, `preferences_dialog.rb`
+added roughly 30 more unmarked strings across its five row tables — on top
+of the shortcuts dialog's 17, the about dialog's, and `base_view.rb`'s empty/
+error text from previous rounds. Each is a string a future translation pass
+must find by reading source, because no extraction tool has anything to walk.
 
 ## Verdict
 
-**0/983.** Translation parity does not partially hold; it does not hold at
-all. There is no catalogue, no extraction, no marker, and no language. This
-is a full gap, not a "not yet started on this unit" — every unit built so far
-(shell, shortcuts dialog, about dialog, base view states) has already shipped
-unmarked strings into the port, so each new unit widens the gap rather than
-leaving it where it was.
+**0/1019, unchanged in kind from the previous round and wider in absolute
+terms** (more unmarked strings have shipped since). No catalogue, no
+extraction, no marker function, no language. Every unit built so far widens
+the gap; none has narrowed it.
