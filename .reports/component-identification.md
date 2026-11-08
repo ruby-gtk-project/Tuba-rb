@@ -5,7 +5,7 @@ Per the `component-identification` skill, re-run for this round.
 | | |
 |---|---|
 | Upstream | `origin/main` @ `3ff8d0c6` ("fix(ci): android apt (#1791)") |
-| Port | `ruby` @ `72660377` |
+| Port | `ruby` @ `6e37c565` |
 
 ## Re-verified upstream totals
 
@@ -23,11 +23,15 @@ tests/: 10 .vala test files, 22 named Test.add_func cases (see test-parity repor
 
 ## `lib/` file by file, since the last round
 
-Four files landed since `.reports/component-inventory.md` (the opening
-survey, still accurate as a baseline) was written: `lib/avatar.rb`,
+Since `.reports/component-inventory.md` (the opening survey, still accurate
+as a baseline) was written, these files landed: `lib/avatar.rb`,
 `lib/utils_counting.rb`, `lib/utils_date_time.rb`, `lib/utils_tag_extractor.rb`,
-`lib/utils_units.rb` (4 utils files, no widgets), and now `lib/preferences_dialog.rb`.
-`lib/` is 19 `.rb` files total (22 including `tuba.rb`, `tuba/rb.rb`,
+`lib/utils_units.rb`, `lib/preferences_dialog.rb`, and — new this round —
+`lib/utils_blurhash.rb` (`src/Utils/Blurhash.vala`, Base83 decode, dimension
+validation, average colour, cosine-basis pixel decode, `blurhash_to_pixbuf`
+via `GdkPixbuf`). No new widget-bearing file landed this round; Blurhash is
+pure arithmetic plus one `GdkPixbuf::Pixbuf` construction, not a widget.
+`lib/` is 20 `.rb` files total (23 including `tuba.rb`, `tuba/rb.rb`,
 `tuba/rb/version.rb`).
 
 | `lib/*.rb` | Upstream source | Widgets built | Signals / actions | Status |
@@ -50,7 +54,8 @@ survey, still accurate as a baseline) was written: `lib/avatar.rb`,
 | `utils_date_time.rb` | `src/Utils/DateTime.vala` | — | — | ported (no widget) |
 | `utils_tag_extractor.rb` | `src/Utils/TagExtractor.vala` | — | — | ported (no widget) |
 | `utils_units.rb` | `src/Utils/Units.vala` | — | — | ported (no widget) |
-| `utils_exif.rb` | `src/Utils/Exif.vala` (new, not previously tracked as its own file — backs `composer.rb`'s alt-text read) | — | — | ported (no widget) |
+| `utils_exif.rb` | `src/Utils/Exif.vala` (not previously tracked as its own file — backs `composer.rb`'s alt-text read) | — | — | ported (no widget) |
+| `utils_blurhash.rb` | `src/Utils/Blurhash.vala` | — (feeds a `GdkPixbuf::Pixbuf`, no on-screen widget of its own) | — | ported (no widget) — **new this round** |
 
 Nothing else in `lib/` corresponds to an upstream file.
 
@@ -59,24 +64,29 @@ Nothing else in `lib/` corresponds to an upstream file.
 ```
 nix develop --command xvfb-run -a ruby test/drive_tuba.rb
 ...
-74 of 74 checks passed
+79 of 79 checks passed
 DRIVE OK
 ```
 
-Reproduced live for this round: **74/74, matches the task's stated gate
-exactly.** Unlike the previous round (see `.reports/accountability-ensurance.md`'s
-history section), this is not a false green this time — it was re-run, not
-assumed.
+Reproduced live for this round: **79/79, matches the task's stated gate
+exactly** (up from 74/74 last round — the five new checks are the Blurhash
+drive block: real-decode-matches-known-pixel, invalid-input-returns-nil,
+real-`GdkPixbuf::Pixbuf`-not-a-stand-in, dimensions-carry-through,
+malformed-input-yields-no-pixbuf — plus the `scroll-page-{up,down}` app
+action checks added alongside it). Unlike two rounds further back (see
+`.reports/accountability-ensurance.md`'s history section), this is not a
+false green — it was re-run live, not assumed.
 
 Distinct units exercised by the drive script (counted from its `d.step`
 labels): app shell, settings, base view (loading/empty/error/padding/content),
 house widgets (VoteCheckButton + ListBoxRowWrapper), avatar, widgetizable,
 tabbed view, shortcuts dialog, about dialog, composer (+libspelling+gexiv2),
-preferences, profile menu — **12–14 depending how finely "base view" and
-"composer" are split**, consistent with the task's "14 components" framing.
+preferences, profile menu, blurhash — **13–16 depending how finely "base
+view" and "composer" are split**, consistent with the task's "16 components"
+framing.
 
-**A runtime gate over 12–14 components is not evidence about the other
-~132–134 upstream units.** Per the task framing, a component no check
+**A runtime gate over ~13–16 components is not evidence about the other
+~130–133 upstream units.** Per the task framing, a component no check
 exercises is unverified, not done — and that is the overwhelming majority of
 this app: every account/network-driven view, every dialog but two, the real
 main window, the whole API/Services layer, and all of `po/`.

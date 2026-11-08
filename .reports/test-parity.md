@@ -3,12 +3,12 @@
 | | |
 |---|---|
 | Upstream | `origin/main` @ `3ff8d0c6` |
-| Port | `ruby` @ `72660377` |
+| Port | `ruby` @ `6e37c565` |
 | Upstream tests | 22 named `Test.add_func` cases across 10 `.vala` files |
-| Ported | 8 |
-| Gaps | 14 |
-| Spec files | `spec/utils_units_spec.rb`, `spec/utils_date_time_spec.rb`, `spec/utils_counting_spec.rb`, `spec/utils_tag_extractor_spec.rb` (unchanged since last round) |
-| Drive script | `test/drive_tuba.rb` — 74/74, see below |
+| Ported | 12 |
+| Gaps | 10 |
+| Spec files | `spec/utils_units_spec.rb`, `spec/utils_date_time_spec.rb`, `spec/utils_counting_spec.rb`, `spec/utils_tag_extractor_spec.rb`, `spec/utils_blurhash_spec.rb` (new this round) |
+| Drive script | `test/drive_tuba.rb` — 79/79, see below |
 
 ## Census (upstream, `tests/*.test.vala`)
 
@@ -45,80 +45,80 @@ tests/WebApHandler.test.vala  /test_web_ap_handler      31
 | `Counting.test.vala` | 2 | `spec/utils_counting_spec.rb` | 2 | — |
 | `DateTime.test.vala` | 4 | `spec/utils_date_time_spec.rb` | 4 | — |
 | `TagExtractor.test.vala` | 1 | `spec/utils_tag_extractor_spec.rb` | 1 | — |
-| `Blurhash.test.vala` | 4 | none (`lib/utils_blurhash.rb` does not exist) | 0 | **gap: 4** |
+| `Blurhash.test.vala` | 4 | `spec/utils_blurhash_spec.rb` (new this round) | 4 | — |
 | `Html.test.vala` | 4 | none (`lib/utils_html.rb` does not exist) | 0 | **gap: 4** |
 | `Tracking.test.vala` | 3 | none (`lib/utils_tracking.rb` does not exist) | 0 | **gap: 3** |
 | `Celebrate.test.vala` | 1 | none | 0 | **gap: 1** |
 | `ShareHandler.test.vala` | 1 | none | 0 | **gap: 1** |
 | `WebApHandler.test.vala` | 1 | none | 0 | **gap: 1** |
 
-8/22 ported, 14/22 gap — matches the file-by-file census exactly: every
+12/22 ported, 10/22 gap — matches the file-by-file census exactly: every
 ported spec corresponds to a `Utils/*.vala` file that also has a `lib/*.rb`
 port (`utils_units.rb`, `utils_counting.rb`, `utils_date_time.rb`,
-`utils_tag_extractor.rb`); every un-ported test corresponds to a
-`Utils/*.vala` file with **no** `lib/*.rb` port at all (Blurhash, Html,
-Tracking, Celebrate, ShareHandler, WebApHandler). No test exists in the port
-for a file the port itself doesn't have — that's expected, but it also means
-test parity here is entirely downstream of component parity, not an
-independent axis yet.
+`utils_tag_extractor.rb`, and now `utils_blurhash.rb`); every un-ported test
+corresponds to a `Utils/*.vala` file with **no** `lib/*.rb` port at all
+(Html, Tracking, Celebrate, ShareHandler, WebApHandler). No test exists in
+the port for a file the port itself doesn't have — that's expected, but it
+also means test parity here is entirely downstream of component parity, not
+an independent axis yet. Note the census's "4 cases" for Blurhash undercounts
+what actually runs: `spec/utils_blurhash_spec.rb` fans each case out into
+several `it` blocks (fixture-driven), so the real example count is higher
+than 4 — see the suite run below.
 
 ## Does the suite actually run?
 
-**Yes, verified live for this round** — but only through the exact command
-the dev shell's own banner prints, not through the plain `rspec` executable:
+**Yes, verified live for this round, and the previous round's entry-point
+bug is fixed.** The last round found plain `rspec` crashing because `.rspec`
+unconditionally required a `RspecJunitFormatter` formatter that nothing in
+the Gemfiles installs. This round's commit (`6e37c565`) drops those two
+lines from `.rspec`, and re-running the plain command for this audit
+confirms it now works:
 
 ```
 $ nix develop --command xvfb-run -a rspec
 ...
-uninitialized constant RspecJunitFormatter (NameError)
+Randomized with seed ...
+.....................................................................................
+85 examples, 0 failures
 ```
 
-`.rspec` unconditionally requires a `RspecJunitFormatter` formatter
-(`--format RspecJunitFormatter --out results/test_results.xml`) that is not
-installed in the dev shell's gem set. **Running `rspec` the ordinary way, as
-any CI step or any contributor typing the obvious command would, crashes
-before a single example runs.** This is a real infrastructure gap, filed in
-`.reports/accountability-ensurance.md` as well, since it means the
-documented "run the specs" entry point from a contributor's perspective
-(`rspec`) is broken on this branch right now.
-
-The banner's workaround bypasses `.rspec` by invoking the runner
-programmatically with an explicit, minimal format list:
+85 examples (not 22 — each upstream test case fans out into multiple `it`
+blocks, e.g. one per fixture value), 0 failures, run through the plain
+`rspec` executable with no workaround — confirmed by direct execution for
+this audit, not assumed from the commit message. The dev shell's banner
+still prints the longer one-liner as its documented command, which is now
+redundant rather than load-bearing:
 
 ```
 $ nix develop --command xvfb-run -a ruby -e 'require "rspec/core"; exit RSpec::Core::Runner.run(["--format", "progress", "--require", "spec_helper", "spec"])'
 ...
-NOTE: kettle-test isn't installed; running with plain RSpec.
-.....................................................
-52 examples, 0 failures
+85 examples, 0 failures
 ```
 
-52 examples (not 22 — each test case fans out into multiple `it` blocks,
-e.g. one per fixture value), 0 failures, confirmed by direct execution for
-this audit. So: **the suite does run and does pass, but not through its own
-configured entry point** — a real but narrower gap than "never executed."
+Both commands pass. The infrastructure gap flagged two rounds ago is
+retired — the documented contributor entry point (`rspec`) now works as
+written, confirmed live, not carried forward as fixed-but-unverified.
 
 ## Drive script
 
 ```
 nix develop --command xvfb-run -a ruby test/drive_tuba.rb
 ...
-74 of 74 checks passed
+79 of 79 checks passed
 DRIVE OK
 ```
 
 Re-run live for this audit, matches the task's stated gate exactly. Per
-`.reports/component-identification.md`, this exercises roughly 12–14 of
+`.reports/component-identification.md`, this exercises roughly 13–16 of
 ~146 user-facing upstream units — real, but narrow. The task's own framing
 ("a component no check exercises is unverified, not done") means the other
-~132 units have no behavioural verification of any kind, not rspec and not
+~130+ units have no behavioural verification of any kind, not rspec and not
 drive.
 
 ## Verdict
 
-Test parity: **8/22 upstream cases ported**, 1:1 with the `Utils/*.vala`
+Test parity: **12/22 upstream cases ported**, 1:1 with the `Utils/*.vala`
 files that have a port. Not a single test exists yet for any Dialog, View,
 or Widget file — because none of those have enough of a port to test. The
-suite that exists passes, but its own `.rspec` configuration is broken for
-the plain invocation; only the dev shell's hand-written workaround command
-runs it.
+suite that exists passes, and this round the plain `rspec` entry point
+(the previous round's finding) is fixed and confirmed working live.

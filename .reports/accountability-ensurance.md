@@ -6,53 +6,43 @@ Per the `accountability-ensurance` skill, run against `lib/`, `exe/`,
 | | |
 |---|---|
 | Upstream | `origin/main` @ `3ff8d0c6` |
-| Port | `ruby` @ `72660377` |
+| Port | `ruby` @ `6e37c565` |
 
-## Headline this round: the runtime gate is real, not a false green
+## Headline this round: the runtime gate is real again, and the rspec entry-point bug from last round is actually fixed
 
-The task that commissioned this round stated the gate as `drive_ok=true, 74
-checks passed, 0 failed, covering 14 components`. Two previous rounds each
-found the stated gate did not match a fresh run (53/0 claimed vs 52/53 actual
-failing; see this file's history below). **This round, the claim checks
-out**, re-run twice live for this audit:
+The task that commissioned this round stated the gate as `drive_ok=true, 79
+checks passed, 0 failed, covering 16 components`. Re-run live for this audit:
 
 ```
 nix develop --command xvfb-run -a ruby test/drive_tuba.rb
 ...
-74 of 74 checks passed
+79 of 79 checks passed
 DRIVE OK
 ```
 
-This is still a narrow gate — ~12-14 of ~146 user-facing upstream units — and
-the task's framing ("a component no check exercises is unverified, not
-done") still applies to the other ~132-134 units with no file, see
-`.reports/component-identification.md`. But the number itself is accurate
-this time, which is the specific failure mode this skill exists to catch,
-and it did not recur.
+Matches exactly (up from 74/74 two rounds ago). This is still a narrow gate
+— ~13-16 of ~146 user-facing upstream units — and the task's framing ("a
+component no check exercises is unverified, not done") still applies to the
+other ~130+ units with no file, see `.reports/component-identification.md`.
+But the number itself is accurate, re-confirmed a second round running.
 
-## New finding this round: a broken documented test entry point
-
-`.rspec` configures a formatter (`RspecJunitFormatter`) that is not installed
-in the dev shell's gem set. Running the plain `rspec` executable — what a CI
-step or any contributor would type — crashes before a single example runs:
+**Last round flagged a broken documented test entry point**: `.rspec`
+configured a `RspecJunitFormatter` formatter that was not installed, so
+plain `rspec` crashed before running a single example. This round's commit
+(`6e37c565`) removes the two offending lines from `.rspec`. Re-run live for
+this audit, not taken on the commit message's word:
 
 ```
 nix develop --command xvfb-run -a rspec
 ...
-uninitialized constant RspecJunitFormatter (NameError)
+85 examples, 0 failures
 ```
 
-The dev shell's own banner papers over this with a one-line workaround that
-bypasses `.rspec` entirely (`ruby -e 'require "rspec/core"; exit
-RSpec::Core::Runner.run([...])'`), which does work (52 examples, 0 failures,
-re-run live for this audit). So the suite is not a false green — it genuinely
-passes when run the way the project tells you to run it — but the *first*
-thing anyone would reach for (`rspec`) is broken, and nothing in `.rspec`,
-the `Gemfile`, or a `PORTING.md` (which does not exist) documents why, or
-that the workaround exists for a reason rather than habit. This is closer to
-an infrastructure bug than an excuse, but it meets this skill's bar for
-"a green claim that rests on something never executed [the normal way]" —
-filed here and in `.reports/test-parity.md`.
+**Fixed, confirmed.** This is the pattern this skill exists to watch for in
+the other direction too — a claimed fix that is actually checked, not just
+repeated. It is retired as a finding this round; it stays in the history
+section below as a record, and will be re-checked again next round rather
+than assumed permanent.
 
 ## Scan
 
@@ -64,13 +54,17 @@ bash .claude/skills/accountability-ensurance/scripts/find-excuses.sh .
 
 ```
 .reports/component-parity.md:48          unported   (this round's own report)
-.reports/component-identification.md:113 unported   (this round's own report)
+.reports/component-identification.md:123 unported   (this round's own report)
 .reports/component-inventory.md:7        no Ruby counterpart
 .reports/component-inventory.md:12       by design
 .reports/component-inventory.md:25       no Ruby counterpart
 .reports/component-inventory.md:292      no Ruby counterpart
 lib/tabbed_base_view.rb:26               unported
 ```
+
+(Re-run live for this audit with the current line numbers; same hits as the
+previous round, no new one introduced by this round's `utils_blurhash.rb`
+addition or by the `.rspec` fix.)
 
 (Hits inside `.reports/accountability-ensurance.md` itself are this file's
 own past-tense narration of previous rounds' hits, quoted for the history
@@ -123,13 +117,16 @@ carries the specific claim. Acceptable as written; not rewritten.
 grep -rniE 'TODO|FIXME|not implemented|for now|in a future|stub' lib/ exe/
 ```
 
-Four hits, all either a quoted explanation of a real limitation
-(`lib/application.rb:31`, `lib/composer.rb:32`, both inside the same
-first-person admission paragraphs already covered above) or incidental prose
-unrelated to excusing a gap (`lib/profile_menu.rb:37`, a translator comment
-about a Mastodon feature name, not about the port itself;
-`lib/preferences_dialog.rb:11`, describing what upstream's *excluded* rows
-would need, inside the file's own honest scoping comment). None hide a gap
+Five hits this round (one new: `lib/utils_blurhash.rb:4`), all either a
+quoted explanation of a real limitation (`lib/application.rb:31`,
+`lib/composer.rb:32`, both inside the same first-person admission
+paragraphs already covered above) or incidental prose unrelated to excusing
+a gap (`lib/profile_menu.rb:37`, a translator comment about a Mastodon
+feature name, not about the port itself; `lib/preferences_dialog.rb:11`,
+describing what upstream's *excluded* rows would need, inside the file's
+own honest scoping comment; `lib/utils_blurhash.rb:4` — the regex's "TODO"
+pattern false-matching the substring inside "Mas**todo**n", not a real
+`TODO`, checked by reading the line). None hide a gap
 behind a label.
 
 No `PORTING.md` exists on this branch, any round so far — there is nowhere
@@ -140,13 +137,15 @@ were checked.
 
 ## Status of previous rounds' rewrites
 
-- **Runtime gate**: previous two rounds each found the stated gate false on
-  re-run (53/0 claimed vs 52/53 actual, twice). This round's 74/0 claim
-  **held** on a live re-run, twice. This is the first round where the
-  headline finding is "the gate was accurate" rather than "the gate was
-  false" — recorded as a data point, not a pattern yet (one clean round
-  after two false ones does not retire the check; it stays mandatory every
-  round).
+- **Runtime gate**: two rounds back, the stated gate was found false on
+  re-run, twice (53/0 claimed vs 52/53 actual). The round after that, 74/74
+  held on live re-run. This round, 79/79 **also held**, re-run live. Two
+  clean rounds in a row after two false ones — still not grounds to stop
+  re-running it; it stays mandatory every round.
+- **`rspec` entry point**: last round found plain `rspec` broken
+  (`RspecJunitFormatter` missing). This round's commit removes the bad
+  `.rspec` lines, and a live re-run confirms `rspec` now passes (85
+  examples, 0 failures). Fixed, not just claimed-fixed.
 - `lib/application.rb`, `lib/tabbed_base_view.rb` — fixed two rounds ago,
   confirmed still fixed by direct read this round.
 - `.reports/component-inventory.md:12` (by design, GResource mechanism) —
@@ -159,10 +158,11 @@ were checked.
 ## Verdict
 
 **Not clean.** The standing gap is the same one every round has found: this
-is roughly a 5%-ported application (12-14 of ~146 user-facing units with
-anything built, most of those partial) with zero translation infrastructure
-and 14 of 22 upstream tests unported. This round adds one new, narrower
-finding — the broken `rspec` entry point — and retires the previous rounds'
-false-runtime-gate finding, which did not recur. Do not stop re-running the
-drive and spec commands every round on the strength of this round's clean
-result; the two previous rounds are exactly why not.
+is roughly a 5-10%-ported application (12 of ~146 user-facing units with
+anything built, most of those partial — Blurhash, this round's only new
+file, is a non-widget utility) with zero translation infrastructure and 10
+of 22 upstream tests still unported. This round retires last round's
+broken-`rspec`-entry-point finding (confirmed fixed, not just claimed) and
+the runtime gate held a second round running. Do not stop re-running the
+drive and spec commands every round on the strength of two clean rounds;
+the two false rounds before them are exactly why not.

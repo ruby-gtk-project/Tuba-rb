@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Upstream | `origin/main` @ `3ff8d0c6` |
-| Port | `ruby` @ `72660377` |
+| Port | `ruby` @ `6e37c565` |
 | Upstream msgids | 1019 (`po/dev.geopjr.Tuba.pot`, 1020 `msgid "` lines minus the 1 empty header) |
 | Upstream languages shipped | 47 (`po/LINGUAS`) + the template |
 | Port msgids | 0 |
@@ -69,9 +69,20 @@ of the shortcuts dialog's 17, the about dialog's, and `base_view.rb`'s empty/
 error text from previous rounds. Each is a string a future translation pass
 must find by reading source, because no extraction tool has anything to walk.
 
+## This round
+
+`lib/utils_blurhash.rb` (the one file to land this round) decodes a
+blurhash string into pixel data and is purely arithmetic — it has no
+user-visible string, so it contributes nothing to either side of this
+count. Re-checked for this audit: still no `po/`, no `.pot`, no gettext
+call site, confirmed again with the same greps as above.
+
 ## Verdict
 
-**0/1019, unchanged in kind from the previous round and wider in absolute
-terms** (more unmarked strings have shipped since). No catalogue, no
-extraction, no marker function, no language. Every unit built so far widens
-the gap; none has narrowed it.
+**0/1019, unchanged in kind and in absolute count from the previous
+round** — this round's one new file added no new unmarked strings either,
+being pure arithmetic. No catalogue, no extraction, no marker function, no
+language. The gap has not narrowed, and has not widened this round, but
+every prior round's unmarked strings (shortcuts dialog, preferences rows,
+about dialog, base-view empty/error text) remain exactly as unmarked as
+before.

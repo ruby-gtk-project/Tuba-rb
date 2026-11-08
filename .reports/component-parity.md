@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Upstream | `origin/main` @ `3ff8d0c6` |
-| Port | `ruby` @ `72660377` |
+| Port | `ruby` @ `6e37c565` |
 | Units with anything to compare | 12 / ~146 user-facing files |
 | Units with full (all-axis) parity | 3 (`list_box_row_wrapper.rb`, `widgetizable.rb`, `profile_menu.rb`) |
 
@@ -118,7 +118,10 @@ files, and `po/` (47 languages + the template). Enumerated in full in
 
 **12 units have something to compare; 3 are full parity, the rest (9) are
 partial-with-a-named-gap or outright gap on at least one axis.** 134 units
-remain flat gaps. The runtime gate (74/74) is real this round, but it only
-ever touches the 12 units above — it is not evidence for the other 134, and
-the task's framing ("a component no check exercises is unverified, not
-done") applies to the bulk of this app.
+remain flat gaps (the one file that landed since the last round,
+`lib/utils_blurhash.rb`, ports `src/Utils/Blurhash.vala`, which has no
+widget and sits outside this report's 146-file Dialogs/Views/Widgets scope —
+see `.reports/component-identification.md`). The runtime gate (79/79 this
+round, up from 74/74) is real, but it only ever touches ~13–16 units — it is
+not evidence for the other ~130+, and the task's framing ("a component no
+check exercises is unverified, not done") applies to the bulk of this app.
