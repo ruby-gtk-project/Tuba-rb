@@ -96,18 +96,11 @@ Gem::Specification.new do |spec|
   spec.executables = ["tuba"]
   spec.require_paths = ["lib"]
 
-  # Runtime toolkit
-  spec.add_dependency("gtk4", "~> 4.3")
   spec.add_dependency("adwaita", "~> 4.3")
-  spec.add_dependency("glib2", "~> 4.3")
-
-  # Image metadata (Exif/XMP/IPTC) for attachments
   spec.add_dependency("gexiv2", "~> 1.0")
-
-  # Inline spell-checking for the composer
+  spec.add_dependency("glib2", "~> 4.3")
+  spec.add_dependency("gtk4", "~> 4.3")
   spec.add_dependency("libspelling", "~> 1.0")
-
-  # HTTP client/server (used by the media/network layer)
   spec.add_dependency("soup3", "~> 1.0")
 
   # NOTE: It is preferable to list development dependencies in the gemspec due to increased

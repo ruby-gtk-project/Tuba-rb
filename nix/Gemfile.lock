@@ -68,9 +68,10 @@ PLATFORMS
 DEPENDENCIES
   adwaita
   gexiv2
+  glib2
   gtk4
   libspelling
   soup3
 
 BUNDLED WITH
-   2.7.2
+   2.6.9

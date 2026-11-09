@@ -1,6 +1,6 @@
-# frozen_string_literal: true
+require_relative "rb/version"
 
-require_relative 'rb/version'
+# frozen_string_literal: true
 
 # The part of Tuba that loads without a display.
 #
